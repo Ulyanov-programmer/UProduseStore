@@ -6,8 +6,8 @@ namespace UlyanovProduseStore.BL.Model
     [Serializable]
     public class Product
     {
-        internal static List<string> Categories = new List<string> { "Fruits", "Vegetables", "Cold Drink" };
-
+        internal static List<string> Categories = new List<string> 
+        { "Fruits", "Vegetables", "Cold Drink" }; //TODO: заменить чем-то более функциональным.
         public Product(string name, decimal cost, byte numberOfCategory)
         {
             #region Cheks
@@ -35,9 +35,9 @@ namespace UlyanovProduseStore.BL.Model
 
         #region Params
 
-        public string Name { get; internal set; }
-        public decimal Cost { get; internal set; }
-        public string Category { get; internal set; }
+        internal string Name { get; set; }
+        internal decimal Cost { get; set; }
+        internal string Category { get; set; }
         #endregion
 
     }

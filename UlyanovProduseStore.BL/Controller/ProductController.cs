@@ -32,19 +32,17 @@ namespace UlyanovProduseStore.BL.Controller
         /// <summary>
         /// Выводит на экран консоли сериализованные экземпляры Product из файла.
         /// </summary>
-        /// <returns> Возвращает true, если операция удалась, или возвращает false, если операция не удалась (не найден файл или он пуст). 
-        /// В последнем случае, создаёт и/или открывает файл и записывает туда пустой лист.
+        /// <returns> Возвращает лист с продуктами. Если файл не был обнаружен он его создаёт и сериализует туда пустой (не null) лист продуктов.
         /// </returns>
         public static List<Product> ShowProducts() //TODO: Вкорячить в TryCatch.
         {
             var binFormatter = new BinaryFormatter();
 
-            if (File.Exists(@"..\..\products.soap")) //TODO: Вкорячить проверку пустоты файла, File.OpenRead.Leght создаёт не закрывающийся поток.
+            using (var stream = new FileStream(@"products.soap", FileMode.OpenOrCreate))
             {
-                using (var stream = new FileStream(@"..\..\products.soap", FileMode.Open))
+                if (stream.Length > 0)
                 {
                     List<Product> products = binFormatter.Deserialize(stream) as List<Product>;
-
 
                     foreach (var product in products)
                     {
@@ -52,10 +50,7 @@ namespace UlyanovProduseStore.BL.Controller
                     }
                     return products;
                 }
-            }
-            else
-            {
-                using (var stream = new FileStream(@"..\..\products.soap", FileMode.CreateNew))
+                else
                 {
                     List<Product> products = new List<Product>();
                     binFormatter.Serialize(stream, products);
