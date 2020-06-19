@@ -1,6 +1,7 @@
 ﻿using System;
 using UlyanovProduseStore.BL.Controller;
 using UlyanovProduseStore.BL.Model;
+using System.Linq;
 
 namespace UlyanovProduseStore.VIEW
 {
@@ -9,31 +10,35 @@ namespace UlyanovProduseStore.VIEW
         static void Main(string[] args)
         {
             Client client = new Client("Новый пользователь");
+            ClientController.FindPerson(client); //TODO: Создать более полноценное меню.
 
-            if (ClientController.FindClient(client) == false)
-            {
-                Console.WriteLine("Вы не зарегистрированы и ранее не заходили, данные о вас сгенерированы и сохранены по умолчанию.");
-            }
-            
             Console.WriteLine("Здравствуйте! Нам доступны следующие продукты:");
+            var products = ProductController.ShowProducts();
 
-
-            if (ProductController.ShowProducts().Count == 0) //TODO: Накидать продуктов (создать метод для этого) в файл.
+            if (products.Count == 0)
             {
                 Console.WriteLine("К сожалению, список продуктов пуст.");
             }
             else
             {
-                Console.WriteLine("Введите e(англ) для того, что-бы занести продукт в корзину. Регистр не учитывается.");
-                Console.WriteLine("Или введите q, если хотите пополнить счёт.");
+                foreach (var product in products)
+                {
+                    Console.Write($"{ProductController.GetName(product)}, "  );
+                    Console.Write($"стоимость: {ProductController.GetCost(product)} рублей, ");
+                    Console.WriteLine($"категория {ProductController.GetCategory(product)}.");
+                }
+                Console.WriteLine("Введите e(англ) и нажмите Enter, если хотите добавить продукт (выбрать чуть позже) в корзину.");
+                Console.WriteLine("Или введите q и нажмите Enter, если хотите пополнить счёт.");
                 var inputKey = Console.ReadLine().ToLower();
                 if (inputKey == "e")
                 {
-                    ClientController.Buy(client);
+                    Console.WriteLine("Введите полное название продукта."); //TODO: Протестировать.
+                    var product = products.SingleOrDefault(x => ProductController.GetName(x) == Console.ReadLine());
+                    ClientController.AddProductInBasket(client, product);
                 }
                 else if (inputKey == "q")
                 {
-                    ClientController.UpBalance(client, 1000); //1000 - временная затычка.
+                    Console.WriteLine("Введите сумму пополнения.");
                 }
             }
             

@@ -1,16 +1,116 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Runtime.Serialization.Formatters.Binary;
 using UlyanovProduseStore.BL.Model;
 using System.Linq;
+using System.Threading;
+using System.Runtime.Serialization.Json;
 
 namespace UlyanovProduseStore.BL.Controller
 {
-    public class ProductController
+    public static class ProductController
     {
-        #region Setters
+        
+        public static List<Product> ShowProducts()
+        {
+            var jFormatter = new DataContractJsonSerializer(typeof(List<Product>));
 
+            try
+            {
+                using (var stream = new FileStream(Product.PathSaveOfProducts, FileMode.OpenOrCreate))
+                {
+                    if (stream.Length > 0)
+                    {
+                        var products = jFormatter.ReadObject(stream) as List<Product>;
+                        return products;
+                    }
+                    else
+                    {
+                        List<Product> products = new List<Product>();
+                        jFormatter.WriteObject(stream, products);
+
+                        return products;
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                throw new FileLoadException("Не удалось загрузить данные о доступных продуктах.");
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="employee"></param>
+        /// <param name="getEmployee"></param>
+        public static void AddProducts(Employee getEmployee) //TODO: Допилить описание.
+        {
+            #region GetEmployee
+            if (getEmployee == null)
+            {
+                throw new ArgumentNullException("Требуемый клиент пуст!");
+            }
+            #endregion
+            List<Product> products = new List<Product>();
+            var jFormatter = new DataContractJsonSerializer(typeof(List<Product>));
+
+            if (File.Exists(Product.PathSaveOfProducts))
+            {
+                var stream = new FileStream(Product.PathSaveOfProducts, FileMode.Open);
+                products = jFormatter.ReadObject(stream) as List<Product>;
+                stream.Dispose();
+                File.Delete(Product.PathSaveOfProducts); //Т.к файл некорректно перезаписывается, его нужно удалить. Это не так критично т.к это файл JSON.
+            }
+            using (var stream = new FileStream(Product.PathSaveOfProducts, FileMode.Create))
+            {
+                while (true)
+                {
+                    Console.WriteLine(@"Ведите название, стоимость и цифру категории продукта одной строкой, разделяя эти значения символом ""*"".");
+                    Console.WriteLine("Доступные категории: ");
+                    for (int item = 0; item < Product.Categories.Count; item++)
+                    {
+                        Console.WriteLine($"{item} = {Product.Categories[item]}");
+                    }
+                    Console.WriteLine("Обратите внимание, что пробелы будут удалены.");
+
+                    string[] parms = Console.ReadLine().Replace(" ", "").Split('*');
+
+                    decimal cost = decimal.Parse(parms[1]);
+                    byte category = byte.Parse(parms[2]);
+
+                    products.Add(new Product(parms.FirstOrDefault(), cost, category));
+
+
+                    Console.WriteLine(@"Продукт добавлен, но изменения не сохранены.");
+                    Console.WriteLine(@"Если более не собираетесь их добавлять, введите ""stop"". В ином случае - введите что угодно или нажмите Enter.");
+
+                    if (Console.ReadLine() == "stop")
+                    {
+                        Console.Clear();
+                        break;
+                    }
+                }
+                jFormatter.WriteObject(stream, products);
+                Console.WriteLine("Добавление продуктов завершено, изменения сохранены.");
+                Thread.Sleep(5000);
+            }
+        }
+
+        #region GettersSetters
+
+        public static string GetName(Product product)
+        {
+            return product.Name;
+        }
+        public static decimal GetCost(Product product)
+        {
+            return product.Cost;
+        }
+        public static string GetCategory(Product product)
+        {
+            return product.Category;
+        }
         public static void SetName(string newName, Product product)
         {
             if (string.IsNullOrWhiteSpace(newName))
@@ -28,81 +128,5 @@ namespace UlyanovProduseStore.BL.Controller
             product.Cost = newCost;
         }
         #endregion
-
-        /// <summary>
-        /// Выводит на экран консоли сериализованные экземпляры Product из файла.
-        /// </summary>
-        /// <returns> Возвращает лист с продуктами. Если файл не был обнаружен он его создаёт и сериализует туда пустой (не null) лист продуктов.
-        /// </returns>
-        public static List<Product> ShowProducts() //TODO: Вкорячить в TryCatch.
-        {
-            var binFormatter = new BinaryFormatter();
-
-            using (var stream = new FileStream(@"products.soap", FileMode.OpenOrCreate))
-            {
-                if (stream.Length > 0)
-                {
-                    List<Product> products = binFormatter.Deserialize(stream) as List<Product>;
-
-                    foreach (var product in products)
-                    {
-                        Console.WriteLine($"{product.Name}, стоимость: {product.Cost} рублей, категория {product.Category}.");
-                    }
-                    return products;
-                }
-                else
-                {
-                    List<Product> products = new List<Product>();
-                    binFormatter.Serialize(stream, products);
-
-                    return products;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Сериализует один или несколько экземпляров Product.
-        /// </summary>
-        public static void AddProducts()
-        {
-            List<Product> products;
-            var binFormatter = new BinaryFormatter();
-
-            using (var stream = new FileStream("products.dat", FileMode.OpenOrCreate))
-            {
-                products = binFormatter.Deserialize(stream) as List<Product>;
-
-
-                while (true)
-                {
-                    Console.WriteLine(@"Ведите название, стоимость и цифру категории продукта, разделяя эти значения символом ""*"".");
-                    Console.Write("Доступные категории: ");
-                    foreach (var item in Product.Categories)
-                    {
-                        Console.WriteLine(item);
-                    }
-
-                    string[] parms = Console.ReadLine().Replace(" ", "").Split('*');
-
-                    decimal cost = decimal.Parse(parms[1]);
-                    byte category = byte.Parse(parms.LastOrDefault());
-
-                    products.Add(new Product(parms.FirstOrDefault(), cost, category));
-
-
-                    Console.WriteLine(@"Продукт добавлен! Если более не собираетесь их добавлять, введите ""STOP"".");
-
-                    if (Console.ReadLine() == "STOP")
-                    {
-                        Console.Clear();
-                        Console.WriteLine("Добавление продуктов завершено.");
-                        break;
-                    }
-                }
-                
-                binFormatter.Serialize(stream, products);
-                Console.WriteLine("Изменения сохранены.");
-            }
-        }
     }
 }

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
@@ -9,6 +8,11 @@ namespace UlyanovProduseStore.BL.Controller
 {
     public class ClientController
     {
+        /// <summary>
+        /// Добавляет в поле клиента "BasketOfproducts" экземпляр класса Product.
+        /// </summary>
+        /// <param name="client">Клиент в "корзину" которого будет добавлен продукт.</param>
+        /// <param name="product">Экземпляр класса Product.</param>
         public static void AddProductInBasket(Client client, Product product)
         {
             if (product != null && client != null)
@@ -45,54 +49,62 @@ namespace UlyanovProduseStore.BL.Controller
         }
 
         /// <summary>
-        /// Метод поиска данных о клиенте среди сериализованных файлов. Открывает файл с данными (или если он пуст - создаёт) и проверяет
-        /// на заполненность. Если заполнен - заполняет аргументный client данными из файла. Иначе - сериализует его данные.
+        /// Метод поиска данных о пользователе среди сериализованных файлов. Открывает файл с данными по пути указанному 
+        /// в NAME_TO_USERDATA (или если там пусто - создаёт пустой файл) и проверяет на заполненность.
+        /// Если заполнен - заполняет аргументный person данными из файла. 
+        /// Иначе - если данные клиента - сериализует их. 
         /// </summary>
-        /// <param name="clientFromFIle">Новый(только имя) клиент.</param>
+        /// <param name="person">Новый(только имя) клиент.</param>
         /// <returns> Возвращает true, если данные удалось десериализовать и имя сохранённого клиента совпадает с входным, 
         ///           и возвращает false, если файл не найден/пуст/имя не совпадает. В таком случае, сериализует клиента в него. </returns>
-        public static bool FindClient(Client client)
+        public static bool FindPerson<T>(T person) where T: Person //TODO: Доделать описание.
         {
-            bool IsClientFind = false;
             var binFormatter = new BinaryFormatter();
-
             try
             {
-                using (var stream = new FileStream(client.NAME_TO_USERDATA, FileMode.OpenOrCreate))
+                using (var stream = new FileStream(person.GetPathToUserData(), FileMode.OpenOrCreate))
                 {
-                    if (stream.Length > 0)
+                    if (stream.Length == 0)
                     {
-                        client = binFormatter.Deserialize(stream) as Client;
-                        IsClientFind = true;
-                    }      
-                    else
-                    {
-                        binFormatter.Serialize(stream, client);
+                        binFormatter.Serialize(stream, person);
+                        Console.WriteLine("Вы не зарегистрированы и ранее не заходили, данные о вас сгенерированы и сохранены по умолчанию.");
                     }
+                    else if (typeof(T) == typeof(Client))
+                    {
+                        person = binFormatter.Deserialize(stream) as T;
+                        return true;
+                    }
+                    else if(typeof(T) == typeof(Employee))
+                    {
+                        return true;
+                    }
+                    return false;
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                throw new Exception("Не удалось получить данные о клиенте или файл о нём повреждён!");
+                Console.WriteLine(ex.Message);
+                throw new Exception("Не удалось получить данные о вас или файл о вас повреждён!");
             }
-
-            return IsClientFind;
         }
+
         /// <summary>
-        /// Увеличивает баланс пользователя.
+        /// Увеличивает баланс экземпляра класса Client.
         /// </summary>
         /// <param name="client">Экземпляр класса Client.</param>
-        /// <param name="money">Количество денег для пополнения.</param>
-        public static void UpBalance(Client client, decimal money)
+        /// <param name="money">Сумма для пополнения.</param>
+        public static bool UpBalance(Client client, decimal money)
         {
             //Да, да, тут должна быть переадресация на платёжные системы и т.д.
-            if (money > 0)
+            if (money > 0 && client != null)
             {
                 client.Account += money;
+                return true;
             }
             else
             {
-                throw new ArgumentException("Сумма пополнения должна быть более нуля!");
+                Console.WriteLine("Сумма пополнения менее или равна нулю или аккаунт повреждён!");
+                return false;
             }
         }
     }
