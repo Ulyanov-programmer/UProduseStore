@@ -10,9 +10,13 @@ namespace UlyanovProduseStore.VIEW
         static void Main(string[] args)
         {
             Client client = new Client("Новый пользователь");
-            ClientController.FindPerson(client); //TODO: Создать более полноценное меню.
+            if (ClientController.FindPerson(client) == false)
+            {
+                Console.WriteLine("Вы не зарегистрированы и ранее не заходили, данные о вас сгенерированы и сохранены по умолчанию.");
+            }
+            //TODO: Создать более полноценное меню.
 
-            Console.WriteLine("Здравствуйте! Нам доступны следующие продукты:");
+            Console.WriteLine($"Здравствуйте, {client.ToString()} Нам доступны следующие продукты:");
             var products = ProductController.ShowProducts();
 
             if (products.Count == 0)
@@ -32,7 +36,7 @@ namespace UlyanovProduseStore.VIEW
                 var inputKey = Console.ReadLine().ToLower();
                 if (inputKey == "e")
                 {
-                    Console.WriteLine("Введите полное название продукта."); //TODO: Протестировать.
+                    Console.WriteLine("Введите полное название продукта."); 
                     var product = products.SingleOrDefault(x => ProductController.GetName(x) == Console.ReadLine());
                     ClientController.AddProductInBasket(client, product);
                 }

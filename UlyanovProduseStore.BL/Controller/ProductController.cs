@@ -10,7 +10,11 @@ namespace UlyanovProduseStore.BL.Controller
 {
     public static class ProductController
     {
-        
+        /// <summary>
+        /// Возвращает список доступных продуктов из файла (путь - в Product.PathSaveOfProducts). 
+        /// </summary>
+        /// <returns> Возвращает заполненный лист с экземплярами Product, если файл не пуст (создаётся, если не найден).
+        ///           Если он был пуст - создаёт базовое представление List Product, сериализует его и возвращает. </returns>
         public static List<Product> ShowProducts()
         {
             var jFormatter = new DataContractJsonSerializer(typeof(List<Product>));
@@ -40,11 +44,10 @@ namespace UlyanovProduseStore.BL.Controller
         }
 
         /// <summary>
-        /// 
+        /// На основе вводимых данных дополняет файл с Product-ами новым экземпляром.
         /// </summary>
-        /// <param name="employee"></param>
-        /// <param name="getEmployee"></param>
-        public static void AddProducts(Employee getEmployee) //TODO: Допилить описание.
+        /// <param name="getEmployee">Объект-защита от несанкционированного доступа.</param>
+        public static void AddProducts(Employee getEmployee) 
         {
             #region GetEmployee
             if (getEmployee == null)
@@ -99,18 +102,38 @@ namespace UlyanovProduseStore.BL.Controller
 
         #region GettersSetters
 
+        /// <summary>
+        /// Возвращает поле Name продукта. 
+        /// </summary>
+        /// <param name="product">Экземпляр Product из которого будет идти считывание.</param>
+        /// <returns></returns>
         public static string GetName(Product product)
         {
             return product.Name;
         }
+        /// <summary>
+        /// Возвращает поле Cost продукта.
+        /// </summary>
+        /// <param name="product">Экземпляр Product из которого будет идти считывание.</param>
+        /// <returns></returns>
         public static decimal GetCost(Product product)
         {
             return product.Cost;
         }
+        /// <summary>
+        /// Возвращает поле Category 
+        /// </summary>
+        /// <param name="product"></param>
+        /// <returns></returns>
         public static string GetCategory(Product product)
         {
             return product.Category;
         }
+        /// <summary>
+        /// изменяет поле Name продукта. 
+        /// </summary>
+        /// <param name="newName">Новое имя экземпляра Product.</param>
+        /// <param name="product">Экземпляр Product который будет изменён.</param>
         public static void SetName(string newName, Product product)
         {
             if (string.IsNullOrWhiteSpace(newName))
@@ -119,6 +142,11 @@ namespace UlyanovProduseStore.BL.Controller
             }
             product.Name = newName;
         }
+        /// <summary>
+        /// Изменяет поле Cost продукта.
+        /// </summary>
+        /// <param name="newCost">Новое значение Cost для экземпляра Product.</param>
+        /// <param name="product">Экземпляр Product который будет изменён.</param>
         public static void SetCost(decimal newCost, Product product)
         {
             if (newCost <= 0)

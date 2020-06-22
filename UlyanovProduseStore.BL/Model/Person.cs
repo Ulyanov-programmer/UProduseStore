@@ -1,8 +1,13 @@
 ﻿using System;
+using System.Reflection;
+using System.Runtime.Serialization;
 
 namespace UlyanovProduseStore.BL.Model
 {
-    [Serializable]
+    /// <summary>
+    /// Абстрактный класс для предотвращения дублирования кода. Содержит поле Name и переопределённый ToString.
+    /// </summary>
+    [DataContract]
     public abstract class Person
     {
         protected Person(string name)
@@ -10,23 +15,20 @@ namespace UlyanovProduseStore.BL.Model
             Name = name ?? throw new ArgumentNullException(nameof(name), "Имя не может быть пустым!");
 
             Name = name;
-            NAME_TO_USERDATA = $"user{Name}.dat"; //TODO: Сделать разные папки сохранения для сотрудников и клиентов
         }
 
         #region Params
-
-        protected string NAME_TO_USERDATA;
+        [DataMember]
         internal string Name { get; set; }
         #endregion
 
+        /// <summary>
+        /// Возвращает Name экземпляра производного от Person..
+        /// </summary>
+        /// <returns></returns>
         public override string ToString()
         {
             return Name;
-        }
-
-        public string GetPathToUserData()
-        {
-            return NAME_TO_USERDATA;
         }
     }
 }

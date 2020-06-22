@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using UlyanovProduseStore.BL.Model;
-using System.IO;
 
 namespace UlyanovProduseStore.BL.Controller.Tests
 {
@@ -18,12 +17,10 @@ namespace UlyanovProduseStore.BL.Controller.Tests
 
             //Act
             bool resultClien = ClientController.FindPerson(client); //Проверка данных о новом экземпляре. Должно быть False т.к клиент новый.
-            bool resultEmp = ClientController.FindPerson(employee);
+            bool resultEmp = ClientController.FindPerson(employee); //То же для сотрудника.
 
-            bool resultClint2 = ClientController.FindPerson(client); //И вновь, но должно быть True т.к он уже был сохранён.
-            bool resultEmp2 = ClientController.FindPerson(employee);
-            File.Delete(client.GetPathToUserData()); //Стоит ли захламлять пк этими данными? Я думаю - нет.
-            File.Delete(employee.GetPathToUserData());
+            bool resultClint2 = ClientController.FindPerson(client); //И вновь, но должно быть True т.к они уже были сохранёны.
+            bool resultEmp2 = ClientController.FindPerson(employee); 
 
             //Assert
             Assert.IsFalse(resultClien);
@@ -36,7 +33,7 @@ namespace UlyanovProduseStore.BL.Controller.Tests
         public void BuyTest()
         {
             //Arrange
-            List<Product> products = new List<Product>() { new Product("p1", 10, 1), new Product("p2", 50, 2) };
+            List<Product> products = new List<Product>() { new Product("p1", 10, 0), new Product("p2", 50, 1) };
             Client client = new Client("Garry", products, 1.00F, 500);
             Client clientNull = null;
 

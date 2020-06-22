@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
-using System.Runtime.Serialization.Formatters.Binary;
+using System.Runtime.Serialization.Json;
 using UlyanovProduseStore.BL.Model;
 
 namespace UlyanovProduseStore.BL.Controller
@@ -9,7 +9,7 @@ namespace UlyanovProduseStore.BL.Controller
     public class ClientController
     {
         /// <summary>
-        /// Добавляет в поле клиента "BasketOfproducts" экземпляр класса Product.
+        /// Добавляет в аргументный Client "BasketOfproducts" экземпляр класса Product.
         /// </summary>
         /// <param name="client">Клиент в "корзину" которого будет добавлен продукт.</param>
         /// <param name="product">Экземпляр класса Product.</param>
@@ -49,34 +49,40 @@ namespace UlyanovProduseStore.BL.Controller
         }
 
         /// <summary>
-        /// Метод поиска данных о пользователе среди сериализованных файлов. Открывает файл с данными по пути указанному 
-        /// в NAME_TO_USERDATA (или если там пусто - создаёт пустой файл) и проверяет на заполненность.
-        /// Если заполнен - заполняет аргументный person данными из файла. 
-        /// Иначе - если данные клиента - сериализует их. 
+        /// Метод поиска данных о пользователе среди сериализованных их версий. Открывает файл с данными по пути указанному 
+        /// в NAME_TO_USERDATA указываемого аргумента (или если там пусто - создаёт пустой файл) и проверяет на заполненность.
+        /// Если заполнен - заполняет аргумент данными из файла. 
+        /// Иначе (если T - клиент) - сериализует его с его стандартными данными. 
         /// </summary>
-        /// <param name="person">Новый(только имя) клиент.</param>
-        /// <returns> Возвращает true, если данные удалось десериализовать и имя сохранённого клиента совпадает с входным, 
-        ///           и возвращает false, если файл не найден/пуст/имя не совпадает. В таком случае, сериализует клиента в него. </returns>
-        public static bool FindPerson<T>(T person) where T: Person //TODO: Доделать описание.
+        /// <typeparam name="T">Тип для десериализации (ограничен Person и его наследниками).</typeparam>
+        /// <param name="person">"Пустой" экземпляр класса.</param>
+        /// <returns> Возвращает True, если объект был найден, и в случае если T = Client, был сериализован. 
+        /// И возвращает False, если файл не был найден или длинна файла была равна нулю. 
+        /// </returns>
+        public static bool FindPerson<T>(T person) where T : Person
         {
-            var binFormatter = new BinaryFormatter();
+            var jsonFormatter = new DataContractJsonSerializer(typeof(T));
+
+            if (!File.Exists("Data")) //Всегда возвращает false, но если директория есть, не создаёт её снова. Не спрашивайте.
+            {
+                Directory.CreateDirectory("Data");
+            }
             try
             {
-                using (var stream = new FileStream(person.GetPathToUserData(), FileMode.OpenOrCreate))
+                using (var stream = new FileStream($@"Data\user{person.Name}.dat", FileMode.OpenOrCreate))
                 {
                     if (stream.Length == 0)
                     {
-                        binFormatter.Serialize(stream, person);
-                        Console.WriteLine("Вы не зарегистрированы и ранее не заходили, данные о вас сгенерированы и сохранены по умолчанию.");
+                        jsonFormatter.WriteObject(stream, person);
                     }
                     else if (typeof(T) == typeof(Client))
                     {
-                        person = binFormatter.Deserialize(stream) as T;
+                        person = jsonFormatter.ReadObject(stream) as T;
                         return true;
                     }
-                    else if(typeof(T) == typeof(Employee))
+                    else if (typeof(T) == typeof(Employee))
                     {
-                        return true;
+                        return true; //TODO: Допилить логику для работы с сотрудниками.
                     }
                     return false;
                 }
@@ -107,5 +113,6 @@ namespace UlyanovProduseStore.BL.Controller
                 return false;
             }
         }
+
     }
 }

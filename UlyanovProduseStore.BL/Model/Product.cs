@@ -8,12 +8,17 @@ namespace UlyanovProduseStore.BL.Model
     public class Product
     {
         internal const string PathSaveOfProducts = @"F:\Projects\UlyanovProduseStore\UlyanovProduseStore.BL\bin\Debug\products.json";
-        //TODO: При создании установщика изменить тип указания пути к папке с Products.
+        //TODO: При допилке на базу данных - удалить нахрен этот костыль.
 
         internal static List<string> Categories = new List<string>
-        {"Cold_Drink", "Fruits" }; // Не ненадёжно, но enum нельзя перечислить а IEnumerable неудобен.
+        {"Cold_Drink", "Fruits" }; // Не ненадёжно, но IEnumerable неудобен (будет позже).
 
-
+        /// <summary>
+        /// Создаёт экземпляр класса Product.
+        /// </summary>
+        /// <param name="name"> Его имя.</param>
+        /// <param name="cost"> Его стоимость ( на данный момент - в рублях). </param>
+        /// <param name="numberOfCategory"> Его номер категории (на данный момент доступно две: 0 = Cold_Drink, 1 = Fruits).</param>
         public Product(string name, decimal cost, byte numberOfCategory)
         {
             #region Cheks
@@ -40,6 +45,7 @@ namespace UlyanovProduseStore.BL.Model
         }
 
         #region Params
+
         [DataMember]
         internal string Name { get; set; }
         [DataMember]
@@ -48,6 +54,10 @@ namespace UlyanovProduseStore.BL.Model
         internal string Category { get; set; }
         #endregion
 
+        /// <summary>
+        /// Возвращает Name экземпляра Product.
+        /// </summary>
+        /// <returns></returns>
         public override string ToString()
         {
             return Name.ToString();

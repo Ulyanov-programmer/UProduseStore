@@ -1,15 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.Serialization;
 
 namespace UlyanovProduseStore.BL.Model
 {
-    [Serializable]
+    /// <summary>
+    /// Класс клиента. Содержит его корзину (лист продуктов), коэффициент скидки в формате "X.XX" (не более единицы) и баланс.
+    /// </summary>
+    [DataContract]
     public class Client : Person
     {
         /// <summary>
         /// Создаёт новый (полупустой) экземпляр Client с заполненным именем. Остальные параметры выставляются по умолчанию.
         /// </summary>
-        /// <param name="name">Имя "пустого" клиента.</param>
+        /// <param name="name"> Имя "пустого" клиента.</param>
+        /// <param name="typeOfAssembly"> Путь к сборке. </param>
         public Client(string name) : base(name)
         {
             BasketOfproducts = new List<Product>();
@@ -24,6 +29,7 @@ namespace UlyanovProduseStore.BL.Model
         /// <param name="products">Корзина(лист) продуктов.</param>
         /// <param name="discountRate">Коэффициент скидки в виде "Х.ХХF".</param>
         /// <param name="account">Баланс.</param>
+        /// <param name="typeOfAssembly"> Путь к сборке.  </param>
         public Client(string name, List<Product> products, float discountRate, decimal account) : base(name)
         {
             #region Cheks
@@ -45,18 +51,18 @@ namespace UlyanovProduseStore.BL.Model
             DiscountRate = discountRate;
             Account = account;
             BasketOfproducts.AddRange(products);
-            NAME_TO_USERDATA = $"user{Name}.dat";
         }
 
-
         #region params
-
+        [DataMember]
         internal List<Product> BasketOfproducts = new List<Product>();
 
         /// <summary>
         /// Указывает коэффициент скидки в формате "Х.ХХF". Не может быть менее "0.90". 
         /// </summary>
-        internal float DiscountRate { get; set; }
+        [DataMember]
+        internal double DiscountRate { get; set; }
+        [DataMember]
         internal decimal Account { get; set; }
         #endregion
     }
