@@ -1,6 +1,8 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using UlyanovProduseStore.BL.Controller;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UlyanovProduseStore.BL.Model;
 
 namespace UlyanovProduseStore.BL.Controller.Tests
@@ -12,29 +14,36 @@ namespace UlyanovProduseStore.BL.Controller.Tests
         public void FindClientTest()
         {
             //Arrange
-            Client client = new Client(Guid.NewGuid().ToString());
-            Employee employee = new Employee(Guid.NewGuid().ToString());
+            string nameOfClient = Guid.NewGuid().ToString();
+            string nameOfEmployee = Guid.NewGuid().ToString();
 
             //Act
-            bool resultClien = ClientController.FindPerson(client); //Проверка данных о новом экземпляре. Должно быть False т.к клиент новый.
-            bool resultEmp = ClientController.FindPerson(employee); //То же для сотрудника.
+            Client newClient = ClientController.FindPerson<Client>(nameOfClient) as Client;
+            Employee newEmployee = ClientController.FindPerson<Employee>(nameOfEmployee) as Employee;
+            ClientController.UpBalance(newClient, 500);
 
-            bool resultClint2 = ClientController.FindPerson(client); //И вновь, но должно быть True т.к они уже были сохранёны.
-            bool resultEmp2 = ClientController.FindPerson(employee); 
+            var loadedClient = ClientController.FindPerson<Client>(nameOfClient) as Client;
+            //т.к данные были изменёны и сохранены методом ранее, у загружаемого клиента данные должны быть такими же.
+            var loadedEmployee = ClientController.FindPerson<Employee>(nameOfEmployee) as Employee;
 
             //Assert
-            Assert.IsFalse(resultClien);
-            Assert.IsTrue(resultClint2);
-            Assert.IsFalse(resultEmp);
-            Assert.IsTrue(resultEmp2);
+            Assert.AreEqual(ClientController.GetBalance(newClient), ClientController.GetBalance(loadedClient));
+            Assert.AreEqual(loadedClient.ToString(), loadedClient.ToString());
+
+            Assert.AreEqual(newEmployee.ToString(), loadedEmployee.ToString());
         }
 
         [TestMethod()]
         public void BuyTest()
         {
             //Arrange
-            List<Product> products = new List<Product>() { new Product("p1", 10, 0), new Product("p2", 50, 1) };
+            List<Product> products = new List<Product>() { new Product("product1", 10, 0), new Product("product2", 50, 1) };
             Client client = new Client("Garry", products, 1.00F, 500);
+
+            var SumCost = products.Select(x => ProductController.GetCost(x))
+                                  .Sum();
+            decimal BalanceBeforeBuy = ClientController.GetBalance(client);
+
             Client clientNull = null;
 
             //Act
@@ -43,6 +52,7 @@ namespace UlyanovProduseStore.BL.Controller.Tests
 
             //Assert
             Assert.IsTrue(IsBuyComplete);
+            Assert.AreEqual(BalanceBeforeBuy - SumCost, ClientController.GetBalance(client));
             Assert.IsFalse(IsBuyCompleteNull);
         }
 
@@ -51,6 +61,7 @@ namespace UlyanovProduseStore.BL.Controller.Tests
         {
             //Arrange
             Client client = new Client("NewClient");
+            decimal clientBalanceBeforeUp = ClientController.GetBalance(client);
             Client clientNull = null;
 
             //Act
@@ -60,8 +71,23 @@ namespace UlyanovProduseStore.BL.Controller.Tests
 
             //Assert
             Assert.IsTrue(IsBalanceUpped);
+            Assert.AreEqual(clientBalanceBeforeUp + 500, ClientController.GetBalance(client));
             Assert.IsFalse(IsBalanceUppedNullClient);
             Assert.IsFalse(IsBalanceUppedMinusBalance);
+        }
+
+        [TestMethod()]
+        public void AddProductInBasketTest()
+        {
+            //Arrange
+            Client client = new Client(Guid.NewGuid().ToString());
+
+            //Act
+            ClientController.AddProductInBasket(client, new Product("product", 10, 0));
+            string nameOfSavedProduct = ClientController.GetListOfProduct(client).First()
+                                                                                 .ToString();
+            //Assert
+            Assert.AreEqual("product", nameOfSavedProduct);
         }
     }
 }

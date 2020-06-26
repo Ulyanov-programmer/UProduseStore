@@ -4,7 +4,7 @@ using System.IO;
 using UlyanovProduseStore.BL.Model;
 using System.Linq;
 using System.Threading;
-using System.Runtime.Serialization.Json;
+using System.Runtime.Serialization.Formatters.Binary;
 
 namespace UlyanovProduseStore.BL.Controller
 {
@@ -15,23 +15,22 @@ namespace UlyanovProduseStore.BL.Controller
         /// </summary>
         /// <returns> Возвращает заполненный лист с экземплярами Product, если файл не пуст (создаётся, если не найден).
         ///           Если он был пуст - создаёт базовое представление List Product, сериализует его и возвращает. </returns>
-        public static List<Product> ShowProducts()
+        public static List<Product> LoadProducts()
         {
-            var jFormatter = new DataContractJsonSerializer(typeof(List<Product>));
-
+            var bFormatter = new BinaryFormatter();
             try
             {
                 using (var stream = new FileStream(Product.PathSaveOfProducts, FileMode.OpenOrCreate))
                 {
                     if (stream.Length > 0)
                     {
-                        var products = jFormatter.ReadObject(stream) as List<Product>;
+                        var products = bFormatter.Deserialize(stream) as List<Product>;
                         return products;
                     }
                     else
                     {
                         List<Product> products = new List<Product>();
-                        jFormatter.WriteObject(stream, products);
+                        bFormatter.Serialize(stream, products);
 
                         return products;
                     }
@@ -56,33 +55,47 @@ namespace UlyanovProduseStore.BL.Controller
             }
             #endregion
             List<Product> products = new List<Product>();
-            var jFormatter = new DataContractJsonSerializer(typeof(List<Product>));
+            var bFormatter = new BinaryFormatter();
 
             if (File.Exists(Product.PathSaveOfProducts))
             {
                 var stream = new FileStream(Product.PathSaveOfProducts, FileMode.Open);
-                products = jFormatter.ReadObject(stream) as List<Product>;
+                products = bFormatter.Deserialize(stream) as List<Product>;
                 stream.Dispose();
-                File.Delete(Product.PathSaveOfProducts); //Т.к файл некорректно перезаписывается, его нужно удалить. Это не так критично т.к это файл JSON.
             }
-            using (var stream = new FileStream(Product.PathSaveOfProducts, FileMode.Create))
+            else
+            {
+                Directory.CreateDirectory("Data");
+            }
+            using (var stream = new FileStream(Product.PathSaveOfProducts, FileMode.OpenOrCreate))
             {
                 while (true)
                 {
-                    Console.WriteLine(@"Ведите название, стоимость и цифру категории продукта одной строкой, разделяя эти значения символом ""*"".");
+                    Console.WriteLine(@"Ведите название, стоимость и цифру категории продукта.");
                     Console.WriteLine("Доступные категории: ");
                     for (int item = 0; item < Product.Categories.Count; item++)
                     {
                         Console.WriteLine($"{item} = {Product.Categories[item]}");
                     }
-                    Console.WriteLine("Обратите внимание, что пробелы будут удалены.");
 
-                    string[] parms = Console.ReadLine().Replace(" ", "").Split('*');
+                    Console.Write("Название: ");
+                    string inputName = Console.ReadLine();
 
-                    decimal cost = decimal.Parse(parms[1]);
-                    byte category = byte.Parse(parms[2]);
+                    if (products.Any(x => x.Name == inputName))
+                    {
+                        Console.WriteLine("Продукт с такими именем уже существует!");
+                        Thread.Sleep(5000);
+                        Console.Clear();
+                        continue;
+                    }
 
-                    products.Add(new Product(parms.FirstOrDefault(), cost, category));
+                    Console.Write("Стоимость (в рублях): ");
+                    decimal.TryParse(Console.ReadLine(), out decimal cost);
+
+                    Console.Write("Номер категории: ");
+                    byte.TryParse(Console.ReadLine(), out byte category);
+
+                    products.Add(new Product(inputName, cost, category));
 
 
                     Console.WriteLine(@"Продукт добавлен, но изменения не сохранены.");
@@ -94,7 +107,7 @@ namespace UlyanovProduseStore.BL.Controller
                         break;
                     }
                 }
-                jFormatter.WriteObject(stream, products);
+                bFormatter.Serialize(stream, products);
                 Console.WriteLine("Добавление продуктов завершено, изменения сохранены.");
                 Thread.Sleep(5000);
             }

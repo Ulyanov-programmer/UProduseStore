@@ -1,13 +1,11 @@
 ﻿using System;
-using System.Reflection;
-using System.Runtime.Serialization;
 
 namespace UlyanovProduseStore.BL.Model
 {
     /// <summary>
     /// Абстрактный класс для предотвращения дублирования кода. Содержит поле Name и переопределённый ToString.
     /// </summary>
-    [DataContract]
+    [Serializable]
     public abstract class Person
     {
         protected Person(string name)
@@ -18,7 +16,12 @@ namespace UlyanovProduseStore.BL.Model
         }
 
         #region Params
-        [DataMember]
+
+        /// <summary>
+        /// Путь к месту сохранения экземпляров, производных от Person.
+        /// </summary>
+        internal const string PathSaveOfPersons = @"F:\Projects\UlyanovProduseStore\UlyanovProduseStore.BL\bin\Debug\DataUsers";
+        //TODO: При допилке на базу данных - удалить нахрен этот костыль.
         internal string Name { get; set; }
         #endregion
 

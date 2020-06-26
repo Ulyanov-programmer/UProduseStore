@@ -1,12 +1,10 @@
 ﻿using System;
-using System.Runtime.Serialization;
 
 namespace UlyanovProduseStore.BL.Model
 {
-    [DataContract]
+    [Serializable]
     public class Employee : Person //TODO: После допилки под БД, дополнить описание.
     {
-        [DataMember]
         private int ID = 5; //TODO: Запилить регистрацию сотрудников. 
 
         /// <summary>

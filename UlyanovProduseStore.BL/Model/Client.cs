@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Runtime.Serialization;
 
 namespace UlyanovProduseStore.BL.Model
 {
     /// <summary>
     /// Класс клиента. Содержит его корзину (лист продуктов), коэффициент скидки в формате "X.XX" (не более единицы) и баланс.
     /// </summary>
-    [DataContract]
+    [Serializable]
     public class Client : Person
     {
         /// <summary>
@@ -18,7 +17,7 @@ namespace UlyanovProduseStore.BL.Model
         public Client(string name) : base(name)
         {
             BasketOfproducts = new List<Product>();
-            Account = 0;
+            Balance = 0;
             DiscountRate = 1.00F;
         }
 
@@ -28,9 +27,9 @@ namespace UlyanovProduseStore.BL.Model
         /// <param name="name">Имя пользователя.</param>
         /// <param name="products">Корзина(лист) продуктов.</param>
         /// <param name="discountRate">Коэффициент скидки в виде "Х.ХХF".</param>
-        /// <param name="account">Баланс.</param>
+        /// <param name="balance">Баланс.</param>
         /// <param name="typeOfAssembly"> Путь к сборке.  </param>
-        public Client(string name, List<Product> products, float discountRate, decimal account) : base(name)
+        public Client(string name, List<Product> products, float discountRate, decimal balance) : base(name)
         {
             #region Cheks
 
@@ -42,28 +41,25 @@ namespace UlyanovProduseStore.BL.Model
             {
                 throw new ArgumentException("Лист продуктов не может быть null или равен нулю!", nameof(products));
             }
-            if (account <= 0)
+            if (balance <= 0)
             {
-                throw new ArgumentException("Баланс не может быть менее или равен нулю!", nameof(account));
+                throw new ArgumentException("Баланс не может быть менее или равен нулю!", nameof(balance));
             }
             #endregion
 
             DiscountRate = discountRate;
-            Account = account;
+            Balance = balance;
             BasketOfproducts.AddRange(products);
         }
 
         #region params
-        [DataMember]
-        internal List<Product> BasketOfproducts = new List<Product>();
 
+        internal List<Product> BasketOfproducts = new List<Product>();
         /// <summary>
-        /// Указывает коэффициент скидки в формате "Х.ХХF". Не может быть менее "0.90". 
+        /// Указывает коэффициент скидки в формате "Х.ХХ". Не может быть менее "0.90". 
         /// </summary>
-        [DataMember]
         internal double DiscountRate { get; set; }
-        [DataMember]
-        internal decimal Account { get; set; }
+        internal decimal Balance { get; set; }
         #endregion
     }
 }

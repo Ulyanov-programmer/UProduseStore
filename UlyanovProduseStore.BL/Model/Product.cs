@@ -1,17 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Runtime.Serialization;
 
 namespace UlyanovProduseStore.BL.Model
 {
-    [DataContract]
+    [Serializable]
     public class Product
     {
-        internal const string PathSaveOfProducts = @"F:\Projects\UlyanovProduseStore\UlyanovProduseStore.BL\bin\Debug\products.json";
-        //TODO: При допилке на базу данных - удалить нахрен этот костыль.
-
         internal static List<string> Categories = new List<string>
-        {"Cold_Drink", "Fruits" }; // Не ненадёжно, но IEnumerable неудобен (будет позже).
+        {"Холодные напитки", "Фрукты" }; // Не ненадёжно, но IEnumerable неудобен (будет позже). 
+        //При допилке под другие языки следует вставить другие названия категорий. 
 
         /// <summary>
         /// Создаёт экземпляр класса Product.
@@ -46,11 +43,13 @@ namespace UlyanovProduseStore.BL.Model
 
         #region Params
 
-        [DataMember]
+        /// <summary>
+        /// Путь к месту сохранения продуктов.
+        /// </summary>
+        internal const string PathSaveOfProducts = @"F:\Projects\UlyanovProduseStore\UlyanovProduseStore.BL\bin\Debug\Data\products.dat";
+        //TODO: При допилке на базу данных - удалить нахрен этот костыль.
         internal string Name { get; set; }
-        [DataMember]
         internal decimal Cost { get; set; }
-        [DataMember]
         internal string Category { get; set; }
         #endregion
 
