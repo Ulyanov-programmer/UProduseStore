@@ -14,8 +14,18 @@ namespace UlyanovProduseStore.BL.Model
         /// </summary>
         /// <param name="name"> Имя "пустого" клиента.</param>
         /// <param name="typeOfAssembly"> Путь к сборке. </param>
-        public Client(string name) : base(name)
+        public Client(string name, string password) : base(name)
         {
+            #region Cheks
+
+            if (string.IsNullOrWhiteSpace(password))
+            {
+                throw new ArgumentException("Пароль не может быть пустым, состоять только из пробелов или из символов разделителей!");
+            }
+
+            #endregion
+
+            Password = password;
             BasketOfproducts = new List<Product>();
             Balance = 0;
             DiscountRate = 1.00F;
@@ -29,7 +39,7 @@ namespace UlyanovProduseStore.BL.Model
         /// <param name="discountRate">Коэффициент скидки в виде "Х.ХХF".</param>
         /// <param name="balance">Баланс.</param>
         /// <param name="typeOfAssembly"> Путь к сборке.  </param>
-        public Client(string name, List<Product> products, float discountRate, decimal balance) : base(name)
+        public Client(string name, List<Product> products, double discountRate, decimal balance) : base(name)
         {
             #region Cheks
 
@@ -53,8 +63,10 @@ namespace UlyanovProduseStore.BL.Model
         }
 
         #region params
+        internal string Password;
 
         internal List<Product> BasketOfproducts = new List<Product>();
+
         /// <summary>
         /// Указывает коэффициент скидки в формате "Х.ХХ". Не может быть менее "0.90". 
         /// </summary>

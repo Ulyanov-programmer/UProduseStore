@@ -48,7 +48,7 @@ namespace UlyanovProduseStore.BL.Controller
         /// <param name="getEmployee">Объект-защита от несанкционированного доступа.</param>
         public static void AddProducts(Employee getEmployee) 
         {
-            #region GetEmployee
+            #region GetNullEmployee
             if (getEmployee == null)
             {
                 throw new ArgumentNullException("Требуемый клиент пуст!");
@@ -59,9 +59,10 @@ namespace UlyanovProduseStore.BL.Controller
 
             if (File.Exists(Product.PathSaveOfProducts))
             {
-                var stream = new FileStream(Product.PathSaveOfProducts, FileMode.Open);
-                products = bFormatter.Deserialize(stream) as List<Product>;
-                stream.Dispose();
+                using (var stream = new FileStream(Product.PathSaveOfProducts, FileMode.Open))
+                {
+                    products = bFormatter.Deserialize(stream) as List<Product>;
+                }
             }
             else
             {
@@ -95,8 +96,8 @@ namespace UlyanovProduseStore.BL.Controller
                     Console.Write("Номер категории: ");
                     byte.TryParse(Console.ReadLine(), out byte category);
 
-                    products.Add(new Product(inputName, cost, category));
 
+                    products.Add(new Product(inputName, cost, category));
 
                     Console.WriteLine(@"Продукт добавлен, но изменения не сохранены.");
                     Console.WriteLine(@"Если более не собираетесь их добавлять, введите ""stop"". В ином случае - введите что угодно или нажмите Enter.");
@@ -124,6 +125,7 @@ namespace UlyanovProduseStore.BL.Controller
         {
             return product.Name;
         }
+
         /// <summary>
         /// Возвращает поле Cost продукта.
         /// </summary>
@@ -133,6 +135,7 @@ namespace UlyanovProduseStore.BL.Controller
         {
             return product.Cost;
         }
+
         /// <summary>
         /// Возвращает поле Category 
         /// </summary>
@@ -142,6 +145,7 @@ namespace UlyanovProduseStore.BL.Controller
         {
             return product.Category;
         }
+
         /// <summary>
         /// изменяет поле Name продукта. 
         /// </summary>
@@ -155,6 +159,7 @@ namespace UlyanovProduseStore.BL.Controller
             }
             product.Name = newName;
         }
+
         /// <summary>
         /// Изменяет поле Cost продукта.
         /// </summary>

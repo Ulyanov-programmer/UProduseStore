@@ -45,12 +45,22 @@ namespace UlyanovProduseStore.BL.Controller.Tests
             //Act
 
             //Assert
-            Assert.Fail();
         }
 
         [TestMethod()]
         public void AddProductsTest()
         {
+            //Arrange
+
+            //Act
+
+            //Assert
+        }
+
+        [TestMethod()]
+        public void LoadProductsTest()
+        {
+            //TODO: Допилить при добавлении работы с БД, вероятно понадобится создание отдельной таблицы в БД для тестирования. 
             //Arrange
             
             //Act

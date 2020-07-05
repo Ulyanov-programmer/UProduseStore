@@ -34,6 +34,7 @@ namespace UlyanovProduseStore.BL.Controller
         ///           False - если счёт клиента меньше суммы стоимости продуктов или клиент пуст или корзина пуста. </returns>
         public static bool Buy(Client client)
         {
+            //TODO: Добавить проверку на наличие продуктов в файле/БД.
             if (client != null && client.BasketOfproducts.Count > 0)
             {
                 var SumCost = client.BasketOfproducts.Select(x => x.Cost)
@@ -61,47 +62,109 @@ namespace UlyanovProduseStore.BL.Controller
 
         /// <summary>
         /// Метод поиска данных о пользователе среди сериализованных их версий. Открывает файл с данными по пути указанному 
-        /// в константе Person.PathSaveOfPersons, открывает или создаёт файл и проверяет на заполненность.
+        /// в константе Person.PathSaveOfPersons, проверяет на заполненность.
         /// </summary>
-        /// <typeparam name="T">Тип для определения логики метода (ограничен Person и его наследниками).</typeparam>
+        /// <typeparam name="T">Тип возвращаемого значения (ограничен Person и его наследниками).</typeparam>
+        /// <param name="nameOfPerson">Имя пользователя. </param>
+        /// <param name="inputPasswordOrID">Пароль или ID пользователя (если ищется экземпляр Employee - впишите любое значение).</param>
         /// <returns> 
-        /// Если файл был заполнен - создаёт на основе файла и возвращает экземпляр класса Client или Employee (в зависимости от значения T).  
-        /// Иначе - создаёт новый экземпляр класса Client или Employee (в зависимости от значения T) и возвращает его.
+        /// Если файл существует и был заполнен (там сохранён класс T) - возвращает экземпляр класса Client или Employee (в зависимости от значения T).
+        /// Иначе - возвращает null.
         /// </returns>
-        public static Person FindPerson<T>(string nameOfPerson) where T: Person
+        public static Person LoadOfPerson<T>(string nameOfPerson, string inputPasswordOrID) where T : Person
         {
             var binFormatter = new BinaryFormatter();
-
             if (File.Exists(Person.PathSaveOfPersons))
             {
                 Directory.CreateDirectory(Person.PathSaveOfPersons);
             }
             try
             {
-                using (var stream = new FileStream($@"{Person.PathSaveOfPersons}\user{nameOfPerson}.dat", FileMode.OpenOrCreate))
+                if (File.Exists($@"{Person.PathSaveOfPersons}\user{nameOfPerson}.dat"))
                 {
-                    if (stream.Length == 0)
+                    using (var stream = new FileStream($@"{Person.PathSaveOfPersons}\user{nameOfPerson}.dat", FileMode.Open))
                     {
-                        if (typeof(T) == typeof(Client))
+                        if (stream.Length == 0)
                         {
-                            Client newClient = new Client(nameOfPerson);
-                            binFormatter.Serialize(stream, newClient);
-                            return newClient;
+                            File.Delete($@"{Person.PathSaveOfPersons}\user{nameOfPerson}.dat");
+                            return null;
                         }
-                        else if (typeof(T) == typeof(Employee))
+                        else if (typeof(T) == typeof(Client))
                         {
-                            Employee newEmployee = new Employee(nameOfPerson);
-                            binFormatter.Serialize(stream, newEmployee);
-                            return newEmployee;
+                            var loadedClient = binFormatter.Deserialize(stream) as Client;
+                            if (GetPassword(loadedClient) != inputPasswordOrID)
+                            {
+                                return null;
+                            }
+                            return loadedClient;
+                        }
+                        else if(typeof(T) == typeof(Employee))
+                        {
+                            var loadedEmployee = binFormatter.Deserialize(stream) as Employee;
+                            return loadedEmployee;
                         }
                     }
-                    return binFormatter.Deserialize(stream) as T;
                 }
+                return null;
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
                 throw new Exception("Не удалось получить данные о вас или файл о вас повреждён!");
+                //TODO: Переписать эксепшены. 
+            }
+        }
+
+        /// <summary>
+        /// Сохраняет данные о пользователе и возвращает его.
+        /// </summary>
+        /// <typeparam name="T">Тип возвращаемого и сохраняемого значения </typeparam>
+        /// <param name="nameOfPerson">Имя нового пользователя. </param>
+        /// <param name="passwordOrID">Пароль или ID нового пользователя (если ищется экземпляр Employee - впишите любое значение).</param>
+        /// <returns>
+        /// Возвращает null, если входные имя или пароль являются null, пусты или состоят только из символов-разделителей, 
+        /// если пользователь с таким именем уже существует, или если T это Person.
+        /// В ином случае - сохраняет и возвращает новый экземпляр класса T.
+        /// </returns>
+        public static Person RegistrationOfPerson<T>(string nameOfPerson, string passwordOrID)
+        {
+            if (string.IsNullOrWhiteSpace(nameOfPerson) || string.IsNullOrWhiteSpace(passwordOrID))
+            {
+                return null;
+            }
+            if (File.Exists(Person.PathSaveOfPersons))
+            {
+                Directory.CreateDirectory(Person.PathSaveOfPersons);
+            }
+            if (File.Exists($@"{Person.PathSaveOfPersons}\user{nameOfPerson}.dat"))
+            {
+                return null;
+            }
+            try
+            {
+                var binFormatter = new BinaryFormatter();
+                using (var stream = new FileStream($@"{Person.PathSaveOfPersons}\user{nameOfPerson}.dat", FileMode.Create))
+                {
+                    if (typeof(T) == typeof(Client))
+                    {
+                        var newClient = new Client(nameOfPerson, passwordOrID);
+                        binFormatter.Serialize(stream, newClient);
+                        return newClient;
+                    }
+                    else if (typeof(T) == typeof(Employee))
+                    {
+                        var newEmployee = new Employee(nameOfPerson);
+                        binFormatter.Serialize(stream, newEmployee);
+                        return newEmployee;
+                    }
+
+                    return null;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                throw new Exception("Не удалось сохранить данные о вас!");
             }
         }
 
@@ -142,6 +205,31 @@ namespace UlyanovProduseStore.BL.Controller
             }
         }
 
+        /// <summary>
+        /// Удаляет экземпляр класса Product из корзины входного Client. 
+        /// Если таких экземпляров более одного, будет удалено первое вхождение, с соответствующим названием из nameOfTheProductBeDeleted.
+        /// </summary>
+        /// <param name="client">Экземпляр класса Client, из корзины которого будет удалён экземпляр Product.</param>
+        /// <param name="NameOfTheProductBeDeleted">Имя удаляемого продукта.</param>
+        /// <returns> Если client не пуст, не пуста его корзина, элемент с именем из входного NameOfTheProductBeDeleted есть в корзине,
+        ///           и если удаление прошло успешно - возвращает true.
+        ///           Иначе - false. 
+        /// </returns>
+        public static bool DeleteProductFromBasket(Client client, string nameOfTheProductBeDeleted)
+        {
+            if (client != null && client.BasketOfproducts.Count > 0 &&
+                client.BasketOfproducts.Find(x => x.Name == nameOfTheProductBeDeleted) != default)
+            {
+                client.BasketOfproducts.RemoveAt(client.BasketOfproducts.FindIndex(x => x.Name == nameOfTheProductBeDeleted));
+
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
         #region GettersSetters
 
         /// <summary>
@@ -170,6 +258,22 @@ namespace UlyanovProduseStore.BL.Controller
         public static List<Product> GetListOfProduct(Client client)
         {
             return client.BasketOfproducts;
+        }
+        /// <summary>
+        /// Возвращает пароль входного пользователя. 
+        /// </summary>
+        /// <param name="client">Клиент из которого будет производится чтение.</param>
+        /// <returns></returns>
+        public static string GetPassword(Client client)
+        {
+            if (client != null && client.Password != null)
+            {
+                return client.Password;
+            }
+            else
+            {
+                return "Аккаунт повреждён, невозможен доступ к паролю!";
+            }
         }
         #endregion
     }
