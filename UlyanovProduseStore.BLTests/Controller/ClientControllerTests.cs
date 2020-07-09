@@ -1,5 +1,4 @@
-﻿using UlyanovProduseStore.BL.Controller;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -47,7 +46,7 @@ namespace UlyanovProduseStore.BL.Controller.Tests
         {
             //Arrange
             List<Product> products = new List<Product>() { new Product("product1", 10, 0), new Product("product2", 50, 1) };
-            Client client = new Client("Garry", products, 1.00F, 500);
+            Client client = new Client("Garry","X", products, 1.00F, 500);
 
             var SumCost = products.Select(x => ProductController.GetCost(x))
                                   .Sum();
@@ -89,7 +88,7 @@ namespace UlyanovProduseStore.BL.Controller.Tests
         public void AddProductInBasketTest()
         {
             //Arrange
-            Client client = new Client(Guid.NewGuid().ToString(), "X");
+            Client client = new Client(Guid.NewGuid().ToString(), "XX102134"); //ПАРОЛЬ НЕ МОЖЕТ БЫТЬ МЕНЕЕ 5 СИМВОЛОВ!!11
 
             //Act
             ClientController.AddProductInBasket(client, new Product("product", 10, 0));
@@ -110,7 +109,7 @@ namespace UlyanovProduseStore.BL.Controller.Tests
                 new Product("product2", 50, 1)
             };
 
-            Client client = new Client("Ivan", products, 1.00, 5000);
+            Client client = new Client("Ivan", "X", products, 1.00, 5000);
             Client clientNull = null;
 
             string nameOfProductBeDeleted = "product1";

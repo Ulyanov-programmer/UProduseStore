@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Threading;
 using UlyanovProduseStore.BL.Model;
 
 namespace UlyanovProduseStore.BL.Controller
@@ -74,6 +75,8 @@ namespace UlyanovProduseStore.BL.Controller
         public static Person LoadOfPerson<T>(string nameOfPerson, string inputPasswordOrID) where T : Person
         {
             var binFormatter = new BinaryFormatter();
+            var nameOfType = typeof(T).Name;
+
             if (File.Exists(Person.PathSaveOfPersons))
             {
                 Directory.CreateDirectory(Person.PathSaveOfPersons);
@@ -89,7 +92,7 @@ namespace UlyanovProduseStore.BL.Controller
                             File.Delete($@"{Person.PathSaveOfPersons}\user{nameOfPerson}.dat");
                             return null;
                         }
-                        else if (typeof(T) == typeof(Client))
+                        else if (nameOfType == "Client")
                         {
                             var loadedClient = binFormatter.Deserialize(stream) as Client;
                             if (GetPassword(loadedClient) != inputPasswordOrID)
@@ -98,7 +101,7 @@ namespace UlyanovProduseStore.BL.Controller
                             }
                             return loadedClient;
                         }
-                        else if(typeof(T) == typeof(Employee))
+                        else if(nameOfType == "Employee")
                         {
                             var loadedEmployee = binFormatter.Deserialize(stream) as Employee;
                             return loadedEmployee;
@@ -110,8 +113,7 @@ namespace UlyanovProduseStore.BL.Controller
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
-                throw new Exception("Не удалось получить данные о вас или файл о вас повреждён!");
-                //TODO: Переписать эксепшены. 
+                return null;
             }
         }
 
@@ -145,26 +147,44 @@ namespace UlyanovProduseStore.BL.Controller
                 var binFormatter = new BinaryFormatter();
                 using (var stream = new FileStream($@"{Person.PathSaveOfPersons}\user{nameOfPerson}.dat", FileMode.Create))
                 {
-                    if (typeof(T) == typeof(Client))
+                    var nameOfPersonType = typeof(T);
+
+                    if (nameOfPersonType == typeof(Client))
                     {
                         var newClient = new Client(nameOfPerson, passwordOrID);
-                        binFormatter.Serialize(stream, newClient);
-                        return newClient;
+                        if (newClient.ToString() != null && ClientController.GetPassword(newClient) != null)
+                        {
+                            binFormatter.Serialize(stream, newClient);
+                            return newClient;
+                        }
+                        else
+                        {
+                            return null;
+                        }
                     }
-                    else if (typeof(T) == typeof(Employee))
+                    else if (nameOfPersonType == typeof(Employee))
                     {
                         var newEmployee = new Employee(nameOfPerson);
-                        binFormatter.Serialize(stream, newEmployee);
-                        return newEmployee;
+                        if (newEmployee.ToString() != null)
+                        {
+                            binFormatter.Serialize(stream, newEmployee);
+                            return newEmployee;
+                        }
+                        else
+                        {
+                            return null;
+                        }
                     }
-
-                    return null;
+                    else
+                    {
+                        throw new Exception("Указанный тип объекта не существует!");
+                    }
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
-                throw new Exception("Не удалось сохранить данные о вас!");
+                return null;
             }
         }
 
@@ -198,10 +218,17 @@ namespace UlyanovProduseStore.BL.Controller
         private static void SaveClient(Client client)
         {
             var bformatter = new BinaryFormatter();
-
-            using (var stream = new FileStream($@"{Person.PathSaveOfPersons}\user{client.Name}.dat", FileMode.Create))
+            try
             {
-                bformatter.Serialize(stream, client);
+                using (var stream = new FileStream($@"{Person.PathSaveOfPersons}\user{client.Name}.dat", FileMode.Create))
+                {
+                    bformatter.Serialize(stream, client);
+                }
+            }
+            catch (Exception)
+            {
+                Console.WriteLine("Не удалось сохранить данные после операции!");
+                Thread.Sleep(5000);
             }
         }
 
@@ -272,7 +299,7 @@ namespace UlyanovProduseStore.BL.Controller
             }
             else
             {
-                return "Аккаунт повреждён, невозможен доступ к паролю!";
+                return null;
             }
         }
         #endregion

@@ -18,9 +18,9 @@ namespace UlyanovProduseStore.BL.Controller
         public static List<Product> LoadProducts()
         {
             var bFormatter = new BinaryFormatter();
-            try
+            using (var stream = new FileStream(Product.PathSaveOfProducts, FileMode.OpenOrCreate))
             {
-                using (var stream = new FileStream(Product.PathSaveOfProducts, FileMode.OpenOrCreate))
+                try
                 {
                     if (stream.Length > 0)
                     {
@@ -29,16 +29,18 @@ namespace UlyanovProduseStore.BL.Controller
                     }
                     else
                     {
-                        List<Product> products = new List<Product>();
-                        bFormatter.Serialize(stream, products);
-
-                        return products;
+                        throw new Exception("Не удалось загрузить список продуктов. Был создан список по умолчанию.");
+                        //TODO: Проверить работоспособность. 
                     }
+
                 }
-            }
-            catch (Exception)
-            {
-                throw new FileLoadException("Не удалось загрузить данные о доступных продуктах.");
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                    var products = bFormatter.Deserialize(stream) as List<Product>;
+                    return products;
+                }
+
             }
         }
 
