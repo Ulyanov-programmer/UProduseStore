@@ -5,7 +5,6 @@ namespace UlyanovProduseStore.BL.Model
     /// <summary>
     /// Абстрактный класс для предотвращения дублирования кода у его наследников.
     /// </summary>
-    [Serializable]
     public abstract class Person
     {
         /// <summary>

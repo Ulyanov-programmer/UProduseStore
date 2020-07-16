@@ -10,21 +10,15 @@ namespace UlyanovProduseStore.BL.Controller
 {
     public static class ProductController
     {
-        /// <summary>
-        /// Возвращает список доступных продуктов из файла (путь - в Product.PathSaveOfProducts). 
-        /// </summary>
-        /// <returns> Возвращает заполненный лист с экземплярами Product, если файл не пуст (создаётся, если не найден).
-        ///           Если он был пуст - создаёт базовое представление List Product, сериализует его и возвращает. </returns>
-        public static List<Product> LoadProducts()
+        public static List<Product> LoadProducts(string pathOfLoad)
         {
-            var bFormatter = new BinaryFormatter();
-            using (var stream = new FileStream(Product.PathSaveOfProducts, FileMode.OpenOrCreate))
+            using (var context = new UPSEmployeeContext(pathOfLoad))
             {
                 try
                 {
-                    if (stream.Length > 0)
+                    if (context.Products.Count() > 0)
                     {
-                        var products = bFormatter.Deserialize(stream) as List<Product>;
+                        var products = context.Products.ToList();
                         return products;
                     }
                     else
@@ -37,49 +31,23 @@ namespace UlyanovProduseStore.BL.Controller
                 catch (Exception ex)
                 {
                     Console.WriteLine(ex.Message);
-                    var products = bFormatter.Deserialize(stream) as List<Product>;
-                    return products;
+                    var productsNull = new List<Product>();
+                    return productsNull;
                 }
-
             }
         }
 
-        /// <summary>
-        /// На основе вводимых данных дополняет файл с Product-ами новым экземпляром.
-        /// </summary>
-        /// <param name="getEmployee">Объект-защита от несанкционированного доступа.</param>
-        public static void AddProducts(Employee getEmployee) 
+        public static void AddProducts(string pathOfLoad)
         {
-            #region GetNullEmployee
-            if (getEmployee == null)
-            {
-                throw new ArgumentNullException("Требуемый клиент пуст!");
-            }
-            #endregion
             List<Product> products = new List<Product>();
-            var bFormatter = new BinaryFormatter();
 
-            if (File.Exists(Product.PathSaveOfProducts))
+            using (var context = new UPSEmployeeContext(pathOfLoad))
             {
-                using (var stream = new FileStream(Product.PathSaveOfProducts, FileMode.Open))
-                {
-                    products = bFormatter.Deserialize(stream) as List<Product>;
-                }
-            }
-            else
-            {
-                Directory.CreateDirectory("Data");
-            }
-            using (var stream = new FileStream(Product.PathSaveOfProducts, FileMode.OpenOrCreate))
-            {
+                products = context.Products.ToList();   
+
                 while (true)
                 {
-                    Console.WriteLine(@"Ведите название, стоимость и цифру категории продукта.");
-                    Console.WriteLine("Доступные категории: ");
-                    for (int item = 0; item < Product.Categories.Count; item++)
-                    {
-                        Console.WriteLine($"{item} = {Product.Categories[item]}");
-                    }
+                    Console.WriteLine(@"Ведите название и стоимость продукта.");
 
                     Console.Write("Название: ");
                     string inputName = Console.ReadLine();
@@ -95,11 +63,8 @@ namespace UlyanovProduseStore.BL.Controller
                     Console.Write("Стоимость (в рублях): ");
                     decimal.TryParse(Console.ReadLine(), out decimal cost);
 
-                    Console.Write("Номер категории: ");
-                    byte.TryParse(Console.ReadLine(), out byte category);
 
-
-                    products.Add(new Product(inputName, cost, category));
+                    products.Add(new Product(inputName, cost));
 
                     Console.WriteLine(@"Продукт добавлен, но изменения не сохранены.");
                     Console.WriteLine(@"Если более не собираетесь их добавлять, введите ""stop"". В ином случае - введите что угодно или нажмите Enter.");
@@ -110,7 +75,8 @@ namespace UlyanovProduseStore.BL.Controller
                         break;
                     }
                 }
-                bFormatter.Serialize(stream, products);
+
+                context.SaveChanges();
                 Console.WriteLine("Добавление продуктов завершено, изменения сохранены.");
                 Thread.Sleep(5000);
             }
@@ -136,16 +102,6 @@ namespace UlyanovProduseStore.BL.Controller
         public static decimal GetCost(Product product)
         {
             return product.Cost;
-        }
-
-        /// <summary>
-        /// Возвращает поле Category 
-        /// </summary>
-        /// <param name="product"></param>
-        /// <returns></returns>
-        public static string GetCategory(Product product)
-        {
-            return product.Category;
         }
 
         /// <summary>
