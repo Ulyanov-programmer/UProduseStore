@@ -8,19 +8,20 @@ namespace UlyanovProduseStore.WarehouseTerminal
     {
         static void Main(string[] args)
         {
-            Employee newEmployee = new Employee("Сотрудник");
-            Console.WriteLine("Здравствуйте сотрудник, введите ваш ID.");
+            Console.WriteLine("здравствуйте. \n Для регистрации нового сотрудника нажмите R.");
+            Console.WriteLine("Для работы с базой данных продуктов нажмите D.");
 
-            int.TryParse(Console.ReadLine(), out int inputID);
-
-            if (inputID == newEmployee.GetID())
+            switch (Console.ReadKey().Key)
             {
-                while (true)
-                {
-                    Console.Clear();
-                    Console.WriteLine("Вам доступно добавление продуктов.");
-                    ProductController.AddProducts(newEmployee);
-                }
+                case ConsoleKey.D:
+                    break;
+                case ConsoleKey.R:
+                    Console.Write("Имя и фамилия нового сотрудника (через пробел): ");
+                    string[] firstAndSecondName = Console.ReadLine().Split(' ');
+                    ClientController.RegistrationOfPerson<Employee>(firstAndSecondName[0], firstAndSecondName[1], ClientController.ConnectToMainServer);
+                    break;
+                default:
+                    break;
             }
         }
     }

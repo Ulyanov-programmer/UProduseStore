@@ -5,14 +5,13 @@ namespace UlyanovProduseStore.BL.Model
     /// <summary>
     /// Абстрактный класс для предотвращения дублирования кода у его наследников.
     /// </summary>
-    [Serializable]
     public abstract class Person
     {
         /// <summary>
         /// Доступный только для наследников Person конструктор, в нём определяется значение общих полей.
         /// </summary>
         /// <param name="name">Имя наследника Person.</param>
-        protected Person(string name)
+        public Person(string name)
         {
             if (string.IsNullOrWhiteSpace(name))
             {
@@ -23,21 +22,15 @@ namespace UlyanovProduseStore.BL.Model
             Name = name;
         }
 
-        #region Params
+        #region params
 
-        /// <summary>
-        /// Путь к месту сохранения экземпляров, производных от Person.
-        /// </summary>
-        internal const string PathSaveOfPersons = @"F:\Projects\UlyanovProduseStore\UlyanovProduseStore.BL\bin\Debug\DataUsers";
-        //TODO: При допилке на базу данных - удалить нахрен этот костыль.
-
-        internal string Name { get; set; }
+        public string Name { get; set; }
         #endregion
 
         /// <summary>
-        /// Возвращает Name экземпляра производного от Person..
+        /// Возвращает поле Name экземпляра класса, наследника от Person. 
         /// </summary>
-        /// <returns></returns>
+        /// <returns> </returns>
         public override string ToString()
         {
             return Name;

@@ -1,4 +1,5 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using UlyanovProduseStore.BL.Controller;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,28 +16,29 @@ namespace UlyanovProduseStore.BL.Controller.Tests
             //Arrange
             string nameOfClient = Guid.NewGuid().ToString();
             string nameOfEmp = Guid.NewGuid().ToString();
-            string passwordOrID = Guid.NewGuid().ToString();
-            string wrongPassword = passwordOrID + "X6X6X6";
+            string passwordOrSecondName = Guid.NewGuid().ToString();
+            string wrongPassword = passwordOrSecondName + "X6X6X6";
+            string pathSaveOrLoad = ClientController.ConnectToTestServer;
 
             //Act
             //Сохранение новых пользователей.
-            Client currentClient = ClientController.RegistrationOfPerson<Client>(nameOfClient, passwordOrID) as Client;
-            Employee newEmployee = ClientController.RegistrationOfPerson<Employee>(nameOfEmp, passwordOrID) as Employee;
+            Client newClient = ClientController.RegistrationOfPerson<Client>(nameOfClient, passwordOrSecondName, pathSaveOrLoad) as Client;
+            Employee newEmployee = ClientController.RegistrationOfPerson<Employee>(nameOfEmp, passwordOrSecondName, pathSaveOrLoad) as Employee;
 
             //Изменение и сохранение данных текущего клиента.
-            ClientController.UpBalance(currentClient, 500);
+            ClientController.UpBalance(newClient, 500, pathSaveOrLoad);
 
             //Загрузка данных сохранённого клиента. 
-            Client loadedClient = ClientController.LoadOfPerson<Client>(nameOfClient, passwordOrID) as Client;
+            Client loadedClient = ClientController.LoadOfPerson<Client>(nameOfClient, passwordOrSecondName, pathSaveOrLoad) as Client;
+            Client loadedClientWithWrongPassword = ClientController.LoadOfPerson<Client>(nameOfClient, wrongPassword, pathSaveOrLoad) as Client;
 
-            Client loadedClientWithWrongPassword = ClientController.LoadOfPerson<Client>(nameOfClient, wrongPassword) as Client;
-            Employee loadedEmployee = ClientController.LoadOfPerson<Employee>(nameOfEmp, passwordOrID) as Employee;
+            Employee loadedEmployee = ClientController.LoadOfPerson<Employee>(nameOfEmp, passwordOrSecondName, pathSaveOrLoad) as Employee;
 
             //Assert
             //Сравнение данных текущего клиента и клиента загружаемого. Должны быть равны т.к данные загружаемого были созданы на основе текущего.
-            Assert.AreEqual(ClientController.GetBalance(currentClient), ClientController.GetBalance(loadedClient));
+            Assert.AreEqual(ClientController.GetBalance(newClient), ClientController.GetBalance(loadedClient));
             Assert.IsNull(loadedClientWithWrongPassword);
-            Assert.AreEqual(loadedClient.ToString(), loadedClient.ToString());
+            Assert.AreEqual(newClient.ToString(), loadedClient.ToString());
 
             Assert.AreEqual(newEmployee.ToString(), loadedEmployee.ToString());
         }
@@ -45,91 +47,77 @@ namespace UlyanovProduseStore.BL.Controller.Tests
         public void BuyTest()
         {
             //Arrange
-            List<Product> products = new List<Product>() { new Product("product1", 10, 0), new Product("product2", 50, 1) };
-            Client client = new Client("Garry","X", products, 1.00F, 500);
-
-            var SumCost = products.Select(x => ProductController.GetCost(x))
+            List<Product> products = new List<Product>()
+            {
+                new Product("product1", 10),
+                new Product("product2", 50)
+            };
+                
+            Client client = new Client(Guid.NewGuid().ToString(), "X", products, 500); /* У экземпляра Client в конструктор 
+                                                                                          которого была помещена коллекция продуктов
+                                                                                          уже вызван WriteProductInFileBasket, 
+                                                                                          т.е имеет записанный файл с этими продуктами. */
+            var sumCost = products.Select(x => ProductController.GetCost(x))
                                   .Sum();
+            if (sumCost > client.Balance)
+            {
+                Assert.Fail(); //Баланс пользователя должен быть больше суммарной стоимости продуктов!
+            }
             decimal BalanceBeforeBuy = ClientController.GetBalance(client);
 
             Client clientNull = null;
+            Client clientNullBusket = new Client(Guid.NewGuid().ToString(), "X", null, 500);
+            Client clientNullBalance = new Client(Guid.NewGuid().ToString(), "X", products, 0);
 
             //Act
-            bool IsBuyComplete = ClientController.Buy(client);
-            bool IsBuyCompleteNull = ClientController.Buy(clientNull);
+            //Перед методом покупки клиента нужно зарегистрировать!
+            ClientController.Registration_OfFullPerson<Client>(client, ClientController.ConnectToTestServer);
+
+            bool isBuyComplete = ClientController.Buy(client, ClientController.ConnectToTestServer, true);
+            bool isBuyCompleteNull = ClientController.Buy(clientNull, ClientController.ConnectToTestServer, true);
+            bool isBuyCompleteNullBusket = ClientController.Buy(clientNullBusket, ClientController.ConnectToTestServer, true);
+            bool isBuyCompleteNullBalance = ClientController.Buy(clientNullBalance, ClientController.ConnectToTestServer, true);
+
+            client = ClientController.LoadOfPerson<Client>(client.Name, client.Password, ClientController.ConnectToTestServer) as Client;
 
             //Assert
-            Assert.IsTrue(IsBuyComplete);
-            Assert.AreEqual(BalanceBeforeBuy - SumCost, ClientController.GetBalance(client));
-            Assert.IsFalse(IsBuyCompleteNull);
+            Assert.IsTrue(isBuyComplete);
+            Assert.AreEqual(BalanceBeforeBuy - sumCost, ClientController.GetBalance(client));
+            Assert.IsFalse(isBuyCompleteNull);
+            Assert.IsFalse(isBuyCompleteNullBusket);
+            Assert.IsFalse(isBuyCompleteNullBalance);
         }
 
-        [TestMethod()]
-        public void UpBalanceTest()
-        {
-            //Arrange
-            Client client = new Client("NewClient", "X");
-            decimal clientBalanceBeforeUp = ClientController.GetBalance(client);
-            Client clientNull = null;
-
-            //Act
-            bool IsBalanceUpped = ClientController.UpBalance(client, 500);
-            bool IsBalanceUppedNullClient = ClientController.UpBalance(clientNull, 500);
-            bool IsBalanceUppedMinusBalance = ClientController.UpBalance(client, -100500);
-
-            //Assert
-            Assert.IsTrue(IsBalanceUpped);
-            Assert.AreEqual(clientBalanceBeforeUp + 500, ClientController.GetBalance(client));
-            Assert.IsFalse(IsBalanceUppedNullClient);
-            Assert.IsFalse(IsBalanceUppedMinusBalance);
-        }
-
-        [TestMethod()]
-        public void AddProductInBasketTest()
-        {
-            //Arrange
-            Client client = new Client(Guid.NewGuid().ToString(), "XX102134"); //ПАРОЛЬ НЕ МОЖЕТ БЫТЬ МЕНЕЕ 5 СИМВОЛОВ!!11
-
-            //Act
-            ClientController.AddProductInBasket(client, new Product("product", 10, 0));
-            string nameOfSavedProduct = ClientController.GetListOfProduct(client).First()
-                                                                                 .ToString();
-            //Assert
-            Assert.AreEqual("product", nameOfSavedProduct);
-        }
 
         [TestMethod()]
         public void DeleteProductFromBasketTest()
         {
             //Arrange
-            List<Product> products = new List<Product>
-            {
-                new Product("product1", 10, 0),
-                new Product("product1", 10, 0),
-                new Product("product2", 50, 1)
-            };
-
-            Client client = new Client("Ivan", "X", products, 1.00, 5000);
-            Client clientNull = null;
-
             string nameOfProductBeDeleted = "product1";
 
-            int CountOfProductsEligibleBeforeRemoval = ClientController.GetListOfProduct(client)
-                                                       .Where(prod => ProductController.GetName(prod) == nameOfProductBeDeleted)
-                                                       .Count(); // Количество продуктов с одним названием ДО удаления.
+            List<Product> products = new List<Product>
+            {
+                new Product(nameOfProductBeDeleted, 10),
+                new Product(nameOfProductBeDeleted, 10),
+                new Product("product2", 50)
+            };
+            Client client = new Client(Guid.NewGuid().ToString(), "X", products, 5000);
+            Client clientNull = null;
 
+            int CountOfProductsEligibleBeforeRemoval = ClientController.ReadFileWithListOfProduct(client, false)
+                                                                       .Where(prod => ProductController.GetName(prod) == nameOfProductBeDeleted)
+                                                                       .Count(); // Количество продуктов с названием "имя удаляемого продукта" ДО удаления.
             //Act
-            bool productIsDeleted = ClientController.DeleteProductFromBasket(client, "product1");
-            bool productIsDeletedFromClientNull = ClientController.DeleteProductFromBasket(clientNull, "product1");
+            bool productIsDeleted = ClientController.DeleteProductFromBasket(client, nameOfProductBeDeleted);
+            bool productIsDeletedFromClientNull = ClientController.DeleteProductFromBasket(clientNull, nameOfProductBeDeleted);
 
-            int CountOfProductsEligibleAfterRemoval = ClientController.GetListOfProduct(client)
+            int сountOfProductsEligibleAfterRemoval = ClientController.ReadFileWithListOfProduct(client, false)
                                                       .Where(prod => ProductController.GetName(prod) == nameOfProductBeDeleted)
-                                                      .Count(); // Количество продуктов с одним названием ПОСЛЕ удаления.
-
+                                                      .Count(); // Количество продуктов с названием "имя удаляемого продукта" ПОСЛЕ удаления.
             //Assert
             Assert.IsTrue(productIsDeleted);
             Assert.IsFalse(productIsDeletedFromClientNull);
-            Assert.AreNotEqual(CountOfProductsEligibleBeforeRemoval, CountOfProductsEligibleAfterRemoval);
+            Assert.AreNotEqual(CountOfProductsEligibleBeforeRemoval, сountOfProductsEligibleAfterRemoval);
         }
 
         [TestMethod()]
@@ -139,27 +127,35 @@ namespace UlyanovProduseStore.BL.Controller.Tests
             string nameOfNewClient = Guid.NewGuid().ToString();
             string nameOfNewEmp = Guid.NewGuid().ToString();
             string passwordOrID = Guid.NewGuid().ToString();
+            string pathToSave = ClientController.ConnectToTestServer;
+            //TODO: Добавить единый для всех методов контекст? 
 
             //Act
-            Client client = ClientController.RegistrationOfPerson<Client>(nameOfNewClient, passwordOrID) as Client;
-            Employee employee = ClientController.RegistrationOfPerson<Employee>(nameOfNewEmp, passwordOrID) as Employee;
+            Client client = ClientController.RegistrationOfPerson<Client>(nameOfNewClient, passwordOrID, pathToSave) as Client;
+            Employee employee = ClientController.RegistrationOfPerson<Employee>(nameOfNewEmp, passwordOrID, pathToSave) as Employee;
 
-            Client clientNullName = ClientController.RegistrationOfPerson<Client>(null, passwordOrID) as Client;
-            Client clientNullPassword = ClientController.RegistrationOfPerson<Client>(nameOfNewClient, null) as Client;
-            Client clientNullArguments = ClientController.RegistrationOfPerson<Client>(null, null) as Client;
-            Client alreadyRegisteredClient = ClientController.RegistrationOfPerson<Client>(nameOfNewClient, passwordOrID) as Client;
-            Client clientWhereTypeIsPerson = ClientController.RegistrationOfPerson<Person>(nameOfNewClient, passwordOrID) as Client;
 
-            Employee employeeNullName = ClientController.RegistrationOfPerson<Client>(null, passwordOrID) as Employee;
-            Employee employeetNullPassword = ClientController.RegistrationOfPerson<Client>(nameOfNewClient, null) as Employee;
-            Employee employeetNullArguments = ClientController.RegistrationOfPerson<Client>(null, null) as Employee;
-            Employee alreadyRegisteredEmployee = ClientController.RegistrationOfPerson<Client>(nameOfNewClient, passwordOrID) as Employee;
-            Employee employeetWhereTypeIsPerson = ClientController.RegistrationOfPerson<Person>(nameOfNewClient, passwordOrID) as Employee;
+            Client clientNullName = ClientController.RegistrationOfPerson<Client>(null, passwordOrID, pathToSave) as Client;
+            Client clientNullPassword = ClientController.RegistrationOfPerson<Client>(nameOfNewClient, null, pathToSave) as Client;
+            Client clientNullPath = ClientController.RegistrationOfPerson<Client>(nameOfNewClient, passwordOrID, null) as Client;
+            Client clientNullArguments = ClientController.RegistrationOfPerson<Client>(null, null, null) as Client;
+
+            Client alreadyRegisteredClient = ClientController.RegistrationOfPerson<Client>(nameOfNewClient, passwordOrID, pathToSave) as Client;
+            Client clientWhereTypeIsPerson = ClientController.RegistrationOfPerson<Person>(nameOfNewClient, passwordOrID, pathToSave) as Client;
+
+            Employee employeeNullName = ClientController.RegistrationOfPerson<Employee>(null, passwordOrID, pathToSave) as Employee;
+            Employee employeetNullPassword = ClientController.RegistrationOfPerson<Employee>(nameOfNewEmp, null, pathToSave) as Employee;
+            Employee employeeNullPath = ClientController.RegistrationOfPerson<Employee>(nameOfNewEmp, passwordOrID, null) as Employee;
+            Employee employeetNullArguments = ClientController.RegistrationOfPerson<Employee>(null, null, null) as Employee;
+            Employee alreadyRegisteredEmployee = ClientController.RegistrationOfPerson<Employee>(nameOfNewEmp, passwordOrID, pathToSave) as Employee;
+            Employee employeetWhereTypeIsPerson = ClientController.RegistrationOfPerson<Person>(nameOfNewEmp, passwordOrID, pathToSave) as Employee;
 
             //Assert
             Assert.IsNotNull(client);
             Assert.IsNotNull(employee);
 
+            Assert.IsNull(employeeNullPath);
+            Assert.IsNull(clientNullPath);
             Assert.IsNull(clientNullName);
             Assert.IsNull(clientNullPassword);
             Assert.IsNull(clientNullArguments);
@@ -170,6 +166,24 @@ namespace UlyanovProduseStore.BL.Controller.Tests
             Assert.IsNull(employeetNullArguments);
             Assert.IsNull(alreadyRegisteredEmployee);
             Assert.IsNull(employeetWhereTypeIsPerson);
+        }
+
+        [TestMethod()]
+        public void WriteProductInFileBasketTest()
+        {
+            //Arrange
+            string name = Guid.NewGuid().ToString();
+            Client client = new Client(name, "PASSWORD" + name);
+            Product product = new Product("PROD" + name, 1500);
+
+            //Act
+            int idOfProduct = ProductController.AddProducts(product, ClientController.ConnectToTestServer);
+
+            ClientController.WriteProductInFileBasket(client, idOfProduct, ClientController.ConnectToTestServer);
+            var listWithProductsOfClient = ClientController.ReadFileWithListOfProduct(client, false);
+
+            //Assert
+            Assert.IsNotNull(listWithProductsOfClient);
         }
     }
 }

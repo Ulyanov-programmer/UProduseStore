@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using UlyanovProduseStore.BL.Model;
 using System.Linq;
 using System.Threading;
-using System.Runtime.Serialization.Formatters.Binary;
 
 namespace UlyanovProduseStore.BL.Controller
 {
@@ -15,32 +13,20 @@ namespace UlyanovProduseStore.BL.Controller
         /// </summary>
         /// <returns> Возвращает заполненный лист с экземплярами Product, если файл не пуст (создаётся, если не найден).
         ///           Если он был пуст - создаёт базовое представление List Product, сериализует его и возвращает. </returns>
-        public static List<Product> LoadProducts()
+        public static List<Product> LoadProducts(string pathLoad)
         {
-            var bFormatter = new BinaryFormatter();
-            using (var stream = new FileStream(Product.PathSaveOfProducts, FileMode.OpenOrCreate))
+            using (var context = new UProduseStoreContext(pathLoad))
             {
                 try
                 {
-                    if (stream.Length > 0)
-                    {
-                        var products = bFormatter.Deserialize(stream) as List<Product>;
-                        return products;
-                    }
-                    else
-                    {
-                        throw new Exception("Не удалось загрузить список продуктов. Был создан список по умолчанию.");
-                        //TODO: Проверить работоспособность. 
-                    }
-
+                    List<Product> products = context.Products.ToList();
+                    return products;
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine(ex.Message);
-                    var products = bFormatter.Deserialize(stream) as List<Product>;
-                    return products;
+                    return new List<Product>();
                 }
-
             }
         }
 
@@ -48,47 +34,31 @@ namespace UlyanovProduseStore.BL.Controller
         /// На основе вводимых данных дополняет файл с Product-ами новым экземпляром.
         /// </summary>
         /// <param name="getEmployee">Объект-защита от несанкционированного доступа.</param>
-        public static void AddProducts(Employee getEmployee) 
+        public static void AddProducts(Employee getEmployee, string pathLoad) //TODO: Переделать комментарии.
         {
             #region GetNullEmployee
             if (getEmployee == null)
             {
-                throw new ArgumentNullException("Требуемый клиент пуст!");
+                Console.WriteLine("Требуемый клиент пуст!");
+                return;
             }
             #endregion
-            List<Product> products = new List<Product>();
-            var bFormatter = new BinaryFormatter();
+            List<Product> loadedProducts = new List<Product>();
 
-            if (File.Exists(Product.PathSaveOfProducts))
+            using (var context = new UProduseStoreContext(pathLoad))
             {
-                using (var stream = new FileStream(Product.PathSaveOfProducts, FileMode.Open))
-                {
-                    products = bFormatter.Deserialize(stream) as List<Product>;
-                }
-            }
-            else
-            {
-                Directory.CreateDirectory("Data");
-            }
-            using (var stream = new FileStream(Product.PathSaveOfProducts, FileMode.OpenOrCreate))
-            {
+                loadedProducts = context.Products.ToList();
+
                 while (true)
                 {
                     Console.WriteLine(@"Ведите название, стоимость и цифру категории продукта.");
-                    Console.WriteLine("Доступные категории: ");
-                    for (int item = 0; item < Product.Categories.Count; item++)
-                    {
-                        Console.WriteLine($"{item} = {Product.Categories[item]}");
-                    }
-
                     Console.Write("Название: ");
                     string inputName = Console.ReadLine();
 
-                    if (products.Any(x => x.Name == inputName))
+                    if (loadedProducts.Any(x => x.Name == inputName))
                     {
                         Console.WriteLine("Продукт с такими именем уже существует!");
                         Thread.Sleep(5000);
-                        Console.Clear();
                         continue;
                     }
 
@@ -99,7 +69,7 @@ namespace UlyanovProduseStore.BL.Controller
                     byte.TryParse(Console.ReadLine(), out byte category);
 
 
-                    products.Add(new Product(inputName, cost, category));
+                    loadedProducts.Add(new Product(inputName, cost));
 
                     Console.WriteLine(@"Продукт добавлен, но изменения не сохранены.");
                     Console.WriteLine(@"Если более не собираетесь их добавлять, введите ""stop"". В ином случае - введите что угодно или нажмите Enter.");
@@ -110,12 +80,22 @@ namespace UlyanovProduseStore.BL.Controller
                         break;
                     }
                 }
-                bFormatter.Serialize(stream, products);
+                context.SaveChanges();
                 Console.WriteLine("Добавление продуктов завершено, изменения сохранены.");
                 Thread.Sleep(5000);
             }
         }
+        public static int AddProducts(Product inputProduct, string pathLoad)
+        {
+            using (var context = new UProduseStoreContext(pathLoad))
+            {
+                context.Products.Add(inputProduct);
+                context.SaveChanges();
 
+                int idOfInputProduct = context.Products.First(prod => prod.Name == inputProduct.Name).Id;
+                return idOfInputProduct;
+            }
+        }
         #region GettersSetters
 
         /// <summary>
@@ -143,10 +123,10 @@ namespace UlyanovProduseStore.BL.Controller
         /// </summary>
         /// <param name="product"></param>
         /// <returns></returns>
-        public static string GetCategory(Product product)
-        {
-            return product.Category;
-        }
+        //public static string GetCategory(Product product)
+        //{
+        //    return product;
+        //}
 
         /// <summary>
         /// изменяет поле Name продукта. 

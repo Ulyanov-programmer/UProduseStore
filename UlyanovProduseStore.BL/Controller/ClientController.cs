@@ -15,50 +15,151 @@ namespace UlyanovProduseStore.BL.Controller
         /// </summary>
         /// <param name="client">Клиент в "корзину" которого будет добавлен продукт.</param>
         /// <param name="product">Объект Product.</param>
-        public static bool AddProductInBasket(Client client, Product product)
+        public static bool WriteProductInFileBasket(Client client, int idOfProduct, string pathLoadFromDB)
         {
-            if (product != null && client != null)
+            if (client != null && idOfProduct > 0 && string.IsNullOrWhiteSpace(pathLoadFromDB) == false)
             {
-                client.BasketOfproducts.Add(product);
-                SaveClient(client);
+                var bFormatter = new BinaryFormatter();
+                var basket_With_Products = new List<Product>();
+                string Path = SavePathParse(client);
+
+                using (var stream = new FileStream(Path, FileMode.OpenOrCreate))
+                {
+                    if (stream.Length != 0)
+                    {
+                        basket_With_Products = bFormatter.Deserialize(stream) as List<Product>;
+                    }
+
+                    using (var context = new UProduseStoreContext(pathLoadFromDB))
+                    {
+                        basket_With_Products.Add(context.Products.FirstOrDefault(prod => prod.Id == idOfProduct));
+                    }
+
+                    bFormatter.Serialize(stream, basket_With_Products);
+                }
                 return true;
             }
             return false;
+        }
+        public static bool WriteProductInFileBasket(Client client, List<Product> listOfProducts)
+        {
+            if (client != null && listOfProducts != null)
+            {
+                var bFormatter = new BinaryFormatter();
+                var list_With_Products = new List<Product>();
+                string Path = SavePathParse(client);
+
+                using (var stream = new FileStream(Path, FileMode.OpenOrCreate))
+                {
+                    if (stream.Length != 0)
+                    {
+                        list_With_Products = bFormatter.Deserialize(stream) as List<Product>;
+                    }
+                    list_With_Products.AddRange(listOfProducts);
+                    bFormatter.Serialize(stream, list_With_Products);
+                }
+                return true;
+            }
+            return false;
+        }
+
+        public static List<Product> ReadFileWithListOfProduct(Client client, bool thisListWillBeWrite)
+        {
+            if (client != null)
+            {
+                var bFormatter = new BinaryFormatter();
+                string Path = SavePathParse(client);
+
+                using (var stream = new FileStream(Path, FileMode.OpenOrCreate))
+                {
+                    if (stream.Length != 0)
+                    {
+                        var listWithProducts = bFormatter.Deserialize(stream) as List<Product>;
+
+                        if (thisListWillBeWrite == true)
+                        {
+                            foreach (var product in listWithProducts)
+                            {
+                                Console.WriteLine($"ID - {product.Id}, имя - {product.Name}, стоимость - {product.Cost}.");
+                            }
+                        }
+                        return listWithProducts;
+                    }
+                }
+            }
+            return null;
         }
 
         /// <summary>
         /// Считывает с счёта клиента стоимость всех продуктов в его корзине умноженную на коэффициент скидки клиента,
         /// после чего изменяет коэффициент скидки, очищает (придаёт базовое представление) листу продуктов и сохраняет изменения клиента.
         /// </summary>
-        /// <param name="client">Объект класса Client. </param>
+        /// <param name="inputNameOfClient">Объект класса Client. </param>
         /// <returns> True - если счёт клиента больше или равен сумме стоимости продуктов и была проведена операция вычитания. 
         ///           False - если счёт клиента меньше суммы стоимости продуктов или клиент пуст или корзина пуста. </returns>
-        public static bool Buy(Client client)
+        public static bool Buy(Client client, string pathToServer, bool isUsed_InTest)
         {
-            //TODO: Добавить проверку на наличие продуктов в файле/БД.
-            if (client != null && client.BasketOfproducts.Count > 0)
+            if (client == null && string.IsNullOrWhiteSpace(pathToServer))
             {
-                var SumCost = client.BasketOfproducts.Select(x => x.Cost)
-                                                     .Sum();
-
-                SumCost = SumCost * (decimal)client.DiscountRate;
-
-                if (client.Balance >= SumCost)
-                {
-                    client.Balance -= SumCost;
-                    client.DiscountRate -= (double)SumCost / 100000;
-                    client.DiscountRate = Math.Round(client.DiscountRate, 2); //TODO: Некорректное округление, исправить.
-
-                    if (client.DiscountRate < 0.90)
-                    {
-                        client.DiscountRate = 0.90;
-                    }
-                    client.BasketOfproducts = new List<Product>();
-                    SaveClient(client);
-                    return true;
-                }
+                throw new ArgumentNullException("Клиент повреждён или путь к серверу неверен!");
             }
-            return false;
+
+            List<Product> listWithProducts = new List<Product>();
+            string Path = SavePathParse(client);
+            Client loadedClient = default;
+            try
+            {
+                using (var context = new UProduseStoreContext(pathToServer))
+                {
+                    loadedClient = context.Clients.FirstOrDefault(clientFromDB => clientFromDB.Name == client.Name);
+                }
+                using (var stream = new FileStream(Path, FileMode.OpenOrCreate))
+                {
+                    if (stream.Length > 0)
+                    {
+                        listWithProducts = new BinaryFormatter().Deserialize(stream) as List<Product>;
+                    }
+                }
+
+                if (client != default && listWithProducts.Count != 0)
+                {
+                    string сonsentBuyProducts = "";
+                    if (isUsed_InTest == true)
+                    {
+                        сonsentBuyProducts = "да";
+                    }
+                    else
+                    {
+                        Console.Write("Вы действительно собираетесь купить эти продукты? Их характеристики: ");
+                        foreach (var product in listWithProducts)
+                        {
+                            Console.WriteLine(product.Name);
+                            Console.WriteLine($"{product.Cost}\n");
+                        }
+                        Console.WriteLine(@"Введите ""да"" (регистр не учитывается), если хотите совершить покупку.");
+                        сonsentBuyProducts = Console.ReadLine().ToLower();
+                    }
+
+                    if (сonsentBuyProducts == "да")
+                    {
+                        decimal sumCostOfBusket = listWithProducts.Sum(prod => prod.Cost);
+                        if (loadedClient.Balance >= sumCostOfBusket)
+                        {
+                            //Типа отправка заявления о доставке этих продуктов туда-то. 
+                            File.Delete(Path);
+                            loadedClient.Balance -= sumCostOfBusket;
+                            SavePerson(loadedClient, pathToServer);
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Произошла ошибка: {ex.Message}");
+                return false;
+            }
         }
 
         /// <summary>
@@ -66,46 +167,29 @@ namespace UlyanovProduseStore.BL.Controller
         /// в константе Person.PathSaveOfPersons, проверяет на заполненность.
         /// </summary>
         /// <typeparam name="T">Тип возвращаемого значения (ограничен Person и его наследниками).</typeparam>
-        /// <param name="nameOfPerson">Имя пользователя. </param>
+        /// <param name="inputName">Имя пользователя. </param>
         /// <param name="inputPasswordOrID">Пароль или ID пользователя (если ищется экземпляр Employee - впишите любое значение).</param>
         /// <returns> 
         /// Если файл существует и был заполнен (там сохранён класс T) - возвращает экземпляр класса Client или Employee (в зависимости от значения T).
         /// Иначе - возвращает null.
         /// </returns>
-        public static Person LoadOfPerson<T>(string nameOfPerson, string inputPasswordOrID) where T : Person
+        public static Person LoadOfPerson<T>(string inputName, string passwordOrID, string pathLoad) where T : Person //TODO: ДОПИЛИТЬ ОПИСАНИЯ!!11
         {
-            var binFormatter = new BinaryFormatter();
-            var nameOfType = typeof(T).Name;
-
-            if (File.Exists(Person.PathSaveOfPersons))
-            {
-                Directory.CreateDirectory(Person.PathSaveOfPersons);
-            }
+            var nameOfType = typeof(T);
             try
             {
-                if (File.Exists($@"{Person.PathSaveOfPersons}\user{nameOfPerson}.dat"))
+                using (var context = new UProduseStoreContext(pathLoad))
                 {
-                    using (var stream = new FileStream($@"{Person.PathSaveOfPersons}\user{nameOfPerson}.dat", FileMode.Open))
+                    if (nameOfType == typeof(Client))
                     {
-                        if (stream.Length == 0)
-                        {
-                            File.Delete($@"{Person.PathSaveOfPersons}\user{nameOfPerson}.dat");
-                            return null;
-                        }
-                        else if (nameOfType == "Client")
-                        {
-                            var loadedClient = binFormatter.Deserialize(stream) as Client;
-                            if (GetPassword(loadedClient) != inputPasswordOrID)
-                            {
-                                return null;
-                            }
-                            return loadedClient;
-                        }
-                        else if(nameOfType == "Employee")
-                        {
-                            var loadedEmployee = binFormatter.Deserialize(stream) as Employee;
-                            return loadedEmployee;
-                        }
+                        var loadedClient = context.Clients.FirstOrDefault(client => client.Name == inputName
+                                                                                 && client.Password == passwordOrID);
+                        return loadedClient;
+                    }
+                    else if (nameOfType == typeof(Employee))
+                    {
+                        Employee newEmployee = context.Employees.FirstOrDefault(DBEmployee => DBEmployee.Name == inputName);
+                        return newEmployee;
                     }
                 }
                 return null;
@@ -122,69 +206,77 @@ namespace UlyanovProduseStore.BL.Controller
         /// </summary>
         /// <typeparam name="T">Тип возвращаемого и сохраняемого значения </typeparam>
         /// <param name="nameOfPerson">Имя нового пользователя. </param>
-        /// <param name="passwordOrID">Пароль или ID нового пользователя (если ищется экземпляр Employee - впишите любое значение).</param>
+        /// <param name="passwordOrID">Пароль или ID нового пользователя (пароль не может быть менее 5 символов).</param>
         /// <returns>
         /// Возвращает null, если входные имя или пароль являются null, пусты или состоят только из символов-разделителей, 
         /// если пользователь с таким именем уже существует, или если T это Person.
         /// В ином случае - сохраняет и возвращает новый экземпляр класса T.
         /// </returns>
-        public static Person RegistrationOfPerson<T>(string nameOfPerson, string passwordOrID)
+        public static Person RegistrationOfPerson<T>(string nameOfPerson, string passwordOrSecondName, string pathToSave) where T : Person //TODO: Переделать комментарии к методам.
         {
-            if (string.IsNullOrWhiteSpace(nameOfPerson) || string.IsNullOrWhiteSpace(passwordOrID))
+            if (string.IsNullOrWhiteSpace(nameOfPerson)
+            ||  string.IsNullOrWhiteSpace(passwordOrSecondName)
+            ||  string.IsNullOrWhiteSpace(pathToSave))
             {
                 return null;
             }
-            if (File.Exists(Person.PathSaveOfPersons))
-            {
-                Directory.CreateDirectory(Person.PathSaveOfPersons);
-            }
-            if (File.Exists($@"{Person.PathSaveOfPersons}\user{nameOfPerson}.dat"))
-            {
-                return null;
-            }
+            var typeofT = typeof(T);
             try
             {
-                var binFormatter = new BinaryFormatter();
-                using (var stream = new FileStream($@"{Person.PathSaveOfPersons}\user{nameOfPerson}.dat", FileMode.Create))
+                using (var context = new UProduseStoreContext(pathToSave))
                 {
-                    var nameOfPersonType = typeof(T);
-
-                    if (nameOfPersonType == typeof(Client))
+                    if (typeofT == typeof(Client))
                     {
-                        var newClient = new Client(nameOfPerson, passwordOrID);
-                        if (newClient.ToString() != null && ClientController.GetPassword(newClient) != null)
+                        Client newUser = new Client(nameOfPerson, passwordOrSecondName);
+                        Client userWithThisNameOrPassword = context.Clients
+                                                                   .FirstOrDefault(client => client.Name == nameOfPerson
+                                                                                          && client.Password == passwordOrSecondName);
+
+                        if (newUser.Name != null && newUser.Password != null && userWithThisNameOrPassword == default)
                         {
-                            binFormatter.Serialize(stream, newClient);
-                            return newClient;
-                        }
-                        else
-                        {
-                            return null;
+                            context.Clients.Add(newUser);
+                            context.SaveChanges();
+                            return newUser;
                         }
                     }
-                    else if (nameOfPersonType == typeof(Employee))
+                    else if (typeofT == typeof(Employee))
                     {
-                        var newEmployee = new Employee(nameOfPerson);
-                        if (newEmployee.ToString() != null)
+                        Employee newEmployee = new Employee(nameOfPerson, passwordOrSecondName);
+                        Employee employeeWithThisNameOrPassword = context.Employees
+                                                                         .FirstOrDefault(client => client.Name == nameOfPerson
+                                                                                                && client.SecondName == passwordOrSecondName);
+                        if (newEmployee.Name != null && newEmployee.SecondName != null && employeeWithThisNameOrPassword == default)
                         {
-                            binFormatter.Serialize(stream, newEmployee);
+                            context.Employees.Add(newEmployee);
+                            context.SaveChanges();
                             return newEmployee;
                         }
-                        else
-                        {
-                            return null;
-                        }
-                    }
-                    else
-                    {
-                        throw new Exception("Указанный тип объекта не существует!");
                     }
                 }
+                return null;
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
                 return null;
+            }
+        }
+        public static void Registration_OfFullPerson<T>(Person person, string pathToSave) where T : Person
+        {
+            var typeofT = typeof(T);
+            using (var context = new UProduseStoreContext(pathToSave))
+            {
+                if (typeofT == typeof(Client))
+                {
+                    Client newUser = person as Client;
+                    context.Clients.Add(newUser);
+                }
+                else if (typeofT == typeof(Client))
+                {
+                    Employee newEmployee = person as Employee;
+                    context.Employees.Add(newEmployee);
+                }
+                context.SaveChanges();
             }
         }
 
@@ -195,13 +287,13 @@ namespace UlyanovProduseStore.BL.Controller
         /// <param name="money">Сумма пополнения. </param>
         /// <returns> Возвращает true, если client не равен null, money более нуля и пополнение было успешно совершено.
         ///           Иначе - возвращает false. </returns>
-        public static bool UpBalance(Client client, decimal money)
+        public static bool UpBalance(Client client, decimal money, string pathToSave) 
         {
             //Да, да, тут должна быть переадресация на платёжные системы и т.д.
             if (money > 0 && client != null)
             {
                 client.Balance += money;
-                SaveClient(client);
+                SavePerson(client, pathToSave);
                 return true;
             }
             else
@@ -212,24 +304,63 @@ namespace UlyanovProduseStore.BL.Controller
         }
 
         /// <summary>
-        /// Приватный метод, нужный для сохранения данных после операций.
+        /// Приватный метод, нужный для сохранения данных после операций ClientController.
         /// </summary>
-        /// <param name="client">Сохраняемый клиент. </param>
-        private static void SaveClient(Client client)
+        /// <param name="inputPerson">Сохраняемый клиент. </param>
+        /// <param name="pathToSave">Путь к таблице/БД в которую должен быть сохранён экземпляр Client/Employee. </param>
+        private static bool SavePerson(Person inputPerson, string pathToSave) 
         {
-            var bformatter = new BinaryFormatter();
-            try
+            if (inputPerson != null)
             {
-                using (var stream = new FileStream($@"{Person.PathSaveOfPersons}\user{client.Name}.dat", FileMode.Create))
+                try
                 {
-                    bformatter.Serialize(stream, client);
+                    using (var context = new UProduseStoreContext(pathToSave))
+                    {
+                        if (inputPerson is Client)
+                        {
+                            Client clientToSave = inputPerson as Client;
+
+                            Client clientFromDB = context.Clients.FirstOrDefault(client => client.Name == clientToSave.Name
+                                                                                        && client.Password == clientToSave.Password);
+                            if (clientFromDB != null)
+                            {
+                                clientFromDB.Balance = clientToSave.Balance;  /*TODO: Бьюсь об заклад, это можно сделать лучше. 
+                                                                                      Полное присоединение не работает. */
+                                clientFromDB.Name = clientToSave.Name;
+                                clientFromDB.Password = clientToSave.Password;
+                                clientFromDB.Id = clientToSave.Id;
+
+                                context.SaveChanges();
+                                return true;
+                            }
+                        }
+                        else if (inputPerson is Employee)
+                        {
+                            Employee employeeToSave = inputPerson as Employee;
+
+                            Employee employeeFromDB = context.Employees.FirstOrDefault(employee => employee.Name == employeeToSave.Name
+                                                                                                && employee.SecondName == employee.SecondName);
+                            if (employeeFromDB != null)
+                            {
+                                employeeFromDB.Id = employeeToSave.Id;
+                                employeeToSave.Name = employeeToSave.Name;
+                                employeeToSave.Position = employeeToSave.Position;
+                                employeeFromDB.Salary = employeeToSave.Salary;
+                                employeeToSave.SecondName = employeeToSave.SecondName;
+
+                                context.SaveChanges();
+                                return true;
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                    Thread.Sleep(5000);
                 }
             }
-            catch (Exception)
-            {
-                Console.WriteLine("Не удалось сохранить данные после операции!");
-                Thread.Sleep(5000);
-            }
+            return false;
         }
 
         /// <summary>
@@ -244,17 +375,29 @@ namespace UlyanovProduseStore.BL.Controller
         /// </returns>
         public static bool DeleteProductFromBasket(Client client, string nameOfTheProductBeDeleted)
         {
-            if (client != null && client.BasketOfproducts.Count > 0 &&
-                client.BasketOfproducts.Find(x => x.Name == nameOfTheProductBeDeleted) != default)
+            if (client != null && string.IsNullOrWhiteSpace(nameOfTheProductBeDeleted) == false)
             {
-                client.BasketOfproducts.RemoveAt(client.BasketOfproducts.FindIndex(x => x.Name == nameOfTheProductBeDeleted));
+                var bFormatter = new BinaryFormatter();
+                string Path = SavePathParse(client);
+                List<Product> listWithProducts = new List<Product>();
 
+                using (var stream = new FileStream(Path, FileMode.OpenOrCreate))
+                {
+                    if (stream.Length != 0)
+                    {
+                        listWithProducts = bFormatter.Deserialize(stream) as List<Product>;
+                    }
+                }
+                listWithProducts.RemoveAll(prod => prod.Name == nameOfTheProductBeDeleted);
+                File.Delete(Path);
+
+                using (var stream = new FileStream(Path, FileMode.Create))
+                {
+                    bFormatter.Serialize(stream, listWithProducts);
+                }
                 return true;
             }
-            else
-            {
-                return false;
-            }
+            return false;
         }
 
         #region GettersSetters
@@ -268,24 +411,7 @@ namespace UlyanovProduseStore.BL.Controller
         {
             return client.Balance;
         }
-        /// <summary>
-        /// Возвращает коэффициент скидки экземпляра Client, хранящийся в формате "X.XX".
-        /// </summary>
-        /// <param name="client">Клиент из которого будет производится чтение.</param>
-        /// <returns></returns>
-        public static double GetDiscountRate(Client client)
-        {
-            return client.DiscountRate;
-        }
-        /// <summary>
-        /// Возвращает корзину (лист) продуктов экземпляра класса Client.
-        /// </summary>
-        /// <param name="client">Клиент из которого будет производится чтение.</param>
-        /// <returns></returns>
-        public static List<Product> GetListOfProduct(Client client)
-        {
-            return client.BasketOfproducts;
-        }
+
         /// <summary>
         /// Возвращает пароль входного пользователя. 
         /// </summary>
@@ -303,5 +429,28 @@ namespace UlyanovProduseStore.BL.Controller
             }
         }
         #endregion
+
+        /// <summary>
+        /// Строка подключения к БД сотрудников.
+        /// </summary>
+        public const string ConnectToMainServer = "MainServerConnection";
+
+        /// <summary>
+        /// Строка подключения к тестовой БД сотрудников.
+        /// </summary>
+        public const string ConnectToTestServer = "TestServerConnection";
+
+        /// <summary>
+        /// При использовании заменить слово NAME на другое значение.
+        /// </summary>
+        public const string SavePath = "BusketOf_NAME.dat";
+        private static string SavePathParse(Client client)
+        {
+            if (client != null)
+            {
+                return SavePath.Replace("NAME", client.Name);
+            }
+            return "";
+        }
     }
 }

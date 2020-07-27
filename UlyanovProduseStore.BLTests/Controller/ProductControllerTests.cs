@@ -13,7 +13,7 @@ namespace UlyanovProduseStore.BL.Controller.Tests
         public void SetNameTest()
         {
             //Arrange
-            Product product = new Product("X", 10, 1);
+            Product product = new Product("X", 10);
 
             //Act
             ProductController.SetName("NewNameOfProduct", product);
@@ -27,7 +27,7 @@ namespace UlyanovProduseStore.BL.Controller.Tests
         public void SetCostTest()
         {
             //Arrange
-            Product product = new Product("X", 10, 1);
+            Product product = new Product("X", 10);
 
             //Act
             ProductController.SetCost(500, product);
@@ -60,7 +60,6 @@ namespace UlyanovProduseStore.BL.Controller.Tests
         [TestMethod()]
         public void LoadProductsTest()
         {
-            //TODO: Допилить при добавлении работы с БД, вероятно понадобится создание отдельной таблицы в БД для тестирования. 
             //Arrange
             
             //Act
