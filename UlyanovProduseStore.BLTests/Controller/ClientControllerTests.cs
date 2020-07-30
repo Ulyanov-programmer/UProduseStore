@@ -1,5 +1,4 @@
-﻿using UlyanovProduseStore.BL.Controller;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,21 +17,21 @@ namespace UlyanovProduseStore.BL.Controller.Tests
             string nameOfEmp = Guid.NewGuid().ToString();
             string passwordOrSecondName = Guid.NewGuid().ToString();
             string wrongPassword = passwordOrSecondName + "X6X6X6";
-            string pathSaveOrLoad = ClientController.ConnectToTestServer;
+            var context = new UProduseStoreContext(ClientController.ConnectToTestServer);
 
             //Act
             //Сохранение новых пользователей.
-            Client newClient = ClientController.RegistrationOfPerson<Client>(nameOfClient, passwordOrSecondName, pathSaveOrLoad) as Client;
-            Employee newEmployee = ClientController.RegistrationOfPerson<Employee>(nameOfEmp, passwordOrSecondName, pathSaveOrLoad) as Employee;
+            Client newClient = ClientController.RegistrationOfPerson<Client>(nameOfClient, passwordOrSecondName, context) as Client;
+            Employee newEmployee = ClientController.RegistrationOfPerson<Employee>(nameOfEmp, passwordOrSecondName, context) as Employee;
 
             //Изменение и сохранение данных текущего клиента.
-            ClientController.UpBalance(newClient, 500, pathSaveOrLoad);
+            ClientController.UpBalance(newClient, 500, context);
 
             //Загрузка данных сохранённого клиента. 
-            Client loadedClient = ClientController.LoadOfPerson<Client>(nameOfClient, passwordOrSecondName, pathSaveOrLoad) as Client;
-            Client loadedClientWithWrongPassword = ClientController.LoadOfPerson<Client>(nameOfClient, wrongPassword, pathSaveOrLoad) as Client;
+            Client loadedClient = ClientController.LoadOfPerson<Client>(nameOfClient, passwordOrSecondName, context) as Client;
+            Client loadedClientWithWrongPassword = ClientController.LoadOfPerson<Client>(nameOfClient, wrongPassword, context) as Client;
 
-            Employee loadedEmployee = ClientController.LoadOfPerson<Employee>(nameOfEmp, passwordOrSecondName, pathSaveOrLoad) as Employee;
+            Employee loadedEmployee = ClientController.LoadOfPerson<Employee>(nameOfEmp, passwordOrSecondName, context) as Employee;
 
             //Assert
             //Сравнение данных текущего клиента и клиента загружаемого. Должны быть равны т.к данные загружаемого были созданы на основе текущего.
@@ -47,6 +46,7 @@ namespace UlyanovProduseStore.BL.Controller.Tests
         public void BuyTest()
         {
             //Arrange
+            var context = new UProduseStoreContext(ClientController.ConnectToTestServer);
             List<Product> products = new List<Product>()
             {
                 new Product("product1", 10),
@@ -71,14 +71,14 @@ namespace UlyanovProduseStore.BL.Controller.Tests
 
             //Act
             //Перед методом покупки клиента нужно зарегистрировать!
-            ClientController.Registration_OfFullPerson<Client>(client, ClientController.ConnectToTestServer);
+            ClientController.Registration_OfFullPerson<Client>(client, context);
 
-            bool isBuyComplete = ClientController.Buy(client, ClientController.ConnectToTestServer, true);
-            bool isBuyCompleteNull = ClientController.Buy(clientNull, ClientController.ConnectToTestServer, true);
-            bool isBuyCompleteNullBusket = ClientController.Buy(clientNullBusket, ClientController.ConnectToTestServer, true);
-            bool isBuyCompleteNullBalance = ClientController.Buy(clientNullBalance, ClientController.ConnectToTestServer, true);
+            bool isBuyComplete = ClientController.Buy(client, context, true);
+            bool isBuyCompleteNull = ClientController.Buy(clientNull, context, true);
+            bool isBuyCompleteNullBusket = ClientController.Buy(clientNullBusket, context, true);
+            bool isBuyCompleteNullBalance = ClientController.Buy(clientNullBalance, context, true);
 
-            client = ClientController.LoadOfPerson<Client>(client.Name, client.Password, ClientController.ConnectToTestServer) as Client;
+            client = ClientController.LoadOfPerson<Client>(client.Name, client.Password, context) as Client;
 
             //Assert
             Assert.IsTrue(isBuyComplete);
@@ -87,7 +87,6 @@ namespace UlyanovProduseStore.BL.Controller.Tests
             Assert.IsFalse(isBuyCompleteNullBusket);
             Assert.IsFalse(isBuyCompleteNullBalance);
         }
-
 
         [TestMethod()]
         public void DeleteProductFromBasketTest()
@@ -127,28 +126,27 @@ namespace UlyanovProduseStore.BL.Controller.Tests
             string nameOfNewClient = Guid.NewGuid().ToString();
             string nameOfNewEmp = Guid.NewGuid().ToString();
             string passwordOrID = Guid.NewGuid().ToString();
-            string pathToSave = ClientController.ConnectToTestServer;
-            //TODO: Добавить единый для всех методов контекст? 
+            var context = new UProduseStoreContext(ClientController.ConnectToTestServer);
 
             //Act
-            Client client = ClientController.RegistrationOfPerson<Client>(nameOfNewClient, passwordOrID, pathToSave) as Client;
-            Employee employee = ClientController.RegistrationOfPerson<Employee>(nameOfNewEmp, passwordOrID, pathToSave) as Employee;
+            Client client = ClientController.RegistrationOfPerson<Client>(nameOfNewClient, passwordOrID, context) as Client;
+            Employee employee = ClientController.RegistrationOfPerson<Employee>(nameOfNewEmp, passwordOrID, context) as Employee;
 
 
-            Client clientNullName = ClientController.RegistrationOfPerson<Client>(null, passwordOrID, pathToSave) as Client;
-            Client clientNullPassword = ClientController.RegistrationOfPerson<Client>(nameOfNewClient, null, pathToSave) as Client;
+            Client clientNullName = ClientController.RegistrationOfPerson<Client>(null, passwordOrID, context) as Client;
+            Client clientNullPassword = ClientController.RegistrationOfPerson<Client>(nameOfNewClient, null, context) as Client;
             Client clientNullPath = ClientController.RegistrationOfPerson<Client>(nameOfNewClient, passwordOrID, null) as Client;
             Client clientNullArguments = ClientController.RegistrationOfPerson<Client>(null, null, null) as Client;
 
-            Client alreadyRegisteredClient = ClientController.RegistrationOfPerson<Client>(nameOfNewClient, passwordOrID, pathToSave) as Client;
-            Client clientWhereTypeIsPerson = ClientController.RegistrationOfPerson<Person>(nameOfNewClient, passwordOrID, pathToSave) as Client;
+            Client alreadyRegisteredClient = ClientController.RegistrationOfPerson<Client>(nameOfNewClient, passwordOrID, context) as Client;
+            Client clientWhereTypeIsPerson = ClientController.RegistrationOfPerson<Person>(nameOfNewClient, passwordOrID, context) as Client;
 
-            Employee employeeNullName = ClientController.RegistrationOfPerson<Employee>(null, passwordOrID, pathToSave) as Employee;
-            Employee employeetNullPassword = ClientController.RegistrationOfPerson<Employee>(nameOfNewEmp, null, pathToSave) as Employee;
+            Employee employeeNullName = ClientController.RegistrationOfPerson<Employee>(null, passwordOrID, context) as Employee;
+            Employee employeetNullPassword = ClientController.RegistrationOfPerson<Employee>(nameOfNewEmp, null, context) as Employee;
             Employee employeeNullPath = ClientController.RegistrationOfPerson<Employee>(nameOfNewEmp, passwordOrID, null) as Employee;
             Employee employeetNullArguments = ClientController.RegistrationOfPerson<Employee>(null, null, null) as Employee;
-            Employee alreadyRegisteredEmployee = ClientController.RegistrationOfPerson<Employee>(nameOfNewEmp, passwordOrID, pathToSave) as Employee;
-            Employee employeetWhereTypeIsPerson = ClientController.RegistrationOfPerson<Person>(nameOfNewEmp, passwordOrID, pathToSave) as Employee;
+            Employee alreadyRegisteredEmployee = ClientController.RegistrationOfPerson<Employee>(nameOfNewEmp, passwordOrID, context) as Employee;
+            Employee employeetWhereTypeIsPerson = ClientController.RegistrationOfPerson<Person>(nameOfNewEmp, passwordOrID, context) as Employee;
 
             //Assert
             Assert.IsNotNull(client);
@@ -177,9 +175,7 @@ namespace UlyanovProduseStore.BL.Controller.Tests
             Product product = new Product("PROD" + name, 1500);
 
             //Act
-            int idOfProduct = ProductController.AddProducts(product, ClientController.ConnectToTestServer);
-
-            ClientController.WriteProductInFileBasket(client, idOfProduct, ClientController.ConnectToTestServer);
+            ClientController.WriteProductInFileBasket(client, product);
             var listWithProductsOfClient = ClientController.ReadFileWithListOfProduct(client, false);
 
             //Assert

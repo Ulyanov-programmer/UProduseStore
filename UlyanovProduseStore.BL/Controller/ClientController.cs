@@ -11,13 +11,16 @@ namespace UlyanovProduseStore.BL.Controller
     public class ClientController
     {
         /// <summary>
-        /// Добавляет в поле BasketOfproducts экземпляра Client объект Product и сохраняет изменения Client.
+        /// Дополняет сериализованный список Product в файле пользователя. Если он не был создан - создаёт его.
         /// </summary>
-        /// <param name="client">Клиент в "корзину" которого будет добавлен продукт.</param>
-        /// <param name="product">Объект Product.</param>
-        public static bool WriteProductInFileBasket(Client client, int idOfProduct, string pathLoadFromDB)
+        /// <param name="client">Клиент в "файл-корзину" которого будет добавлен продукт.</param>
+        /// <param name="product">Объект Product, который будет добавлен.</param>
+        /// <returns>   Возвращает true, если операции добавления и сериализации были успешно завершены.
+        ///             Иначе, если client или product равны null и операции не были совершены, возвращает false.
+        /// </returns>
+        public static bool WriteProductInFileBasket(Client client, Product product)
         {
-            if (client != null && idOfProduct > 0 && string.IsNullOrWhiteSpace(pathLoadFromDB) == false)
+            if (client != null && product != null)
             {
                 var bFormatter = new BinaryFormatter();
                 var basket_With_Products = new List<Product>();
@@ -29,18 +32,23 @@ namespace UlyanovProduseStore.BL.Controller
                     {
                         basket_With_Products = bFormatter.Deserialize(stream) as List<Product>;
                     }
-
-                    using (var context = new UProduseStoreContext(pathLoadFromDB))
-                    {
-                        basket_With_Products.Add(context.Products.FirstOrDefault(prod => prod.Id == idOfProduct));
-                    }
-
+                    basket_With_Products.Add(product);
                     bFormatter.Serialize(stream, basket_With_Products);
                 }
                 return true;
             }
             return false;
         }
+
+        /// <summary>
+        /// Дополняет сериализованный список Product в файле пользователя. Если он не был создан - создаёт его.
+        /// Внимание, данный метод должен эксплуатироваться только в тестах!
+        /// </summary>
+        /// <param name="client">Клиент в "файл-корзину" которого будет добавлен продукт.</param>
+        /// <param name="listOfProducts">Объекты Product, которые должны быть помещены в файл.</param>
+        /// <returns>   Возвращает true, если операции добавления и сериализации были успешно завершены.
+        ///             Иначе, если client или listOfProducts равны null и операции не были совершены, возвращает false.
+        /// </returns>
         public static bool WriteProductInFileBasket(Client client, List<Product> listOfProducts)
         {
             if (client != null && listOfProducts != null)
@@ -63,14 +71,22 @@ namespace UlyanovProduseStore.BL.Controller
             return false;
         }
 
+        /// <summary>
+        /// Считывает объекты Product из "файла-корзины" пользователя.
+        /// </summary>
+        /// <param name="client">Клиент, на основе данных которого будет создан путь к файлу.</param>
+        /// <param name="thisListWillBeWrite">True - будет выведен на экран консоли, False - не будет.</param>
+        /// <returns>
+        /// Возвращает List объектов Product, если client не равен null и файл-корзина не пуст. Иначе - null.
+        /// </returns>
         public static List<Product> ReadFileWithListOfProduct(Client client, bool thisListWillBeWrite)
         {
             if (client != null)
             {
                 var bFormatter = new BinaryFormatter();
-                string Path = SavePathParse(client);
+                string path = SavePathParse(client);
 
-                using (var stream = new FileStream(Path, FileMode.OpenOrCreate))
+                using (var stream = new FileStream(path, FileMode.OpenOrCreate))
                 {
                     if (stream.Length != 0)
                     {
@@ -91,29 +107,37 @@ namespace UlyanovProduseStore.BL.Controller
         }
 
         /// <summary>
-        /// Считывает с счёта клиента стоимость всех продуктов в его корзине умноженную на коэффициент скидки клиента,
-        /// после чего изменяет коэффициент скидки, очищает (придаёт базовое представление) листу продуктов и сохраняет изменения клиента.
+        /// Производит операцию покупки, считывая с счёта входного Client суммарную стоимость продуктов в его "файле-корзине",
+        /// после чего удаляет её и сохраняет изменения.
         /// </summary>
-        /// <param name="inputNameOfClient">Объект класса Client. </param>
-        /// <returns> True - если счёт клиента больше или равен сумме стоимости продуктов и была проведена операция вычитания. 
-        ///           False - если счёт клиента меньше суммы стоимости продуктов или клиент пуст или корзина пуста. </returns>
-        public static bool Buy(Client client, string pathToServer, bool isUsed_InTest)
+        /// <param name="client">   Объект Client, на основе которого будет построен путь к файлу,
+        ///                         и с которым будут проводится операции считывания со счёта. </param>
+        ///
+        /// <param name="context">  Объект UProduseStoreContext, на основе которого 
+        ///                         будет создано подключение к серверу, нужное для сохранения изменений. </param>
+        ///
+        /// <param name="isUsed_InTest"> Параметр-флаг, если true - не отобразится информация о продуктах 
+        ///
+        ///                              в корзине пользователя и не будет требования подтверждения операции. 
+        ///                              Не использовать нигде, кроме тестов! </param>
+        ///
+        /// <returns> Возвращает true, если Client и context не равны null, баланс клиента не менее или равен нулю и все операции были пройдены.
+        ///           В ином случае, в т.ч при возникновении исключения - false. </returns>
+        public static bool Buy(Client client, UProduseStoreContext context, bool isUsed_InTest)
         {
-            if (client == null && string.IsNullOrWhiteSpace(pathToServer))
+            if (client == null || context == null || client.Balance <= 0)
             {
-                throw new ArgumentNullException("Клиент повреждён или путь к серверу неверен!");
+                return false;
             }
 
             List<Product> listWithProducts = new List<Product>();
-            string Path = SavePathParse(client);
+            string pathToBasket = SavePathParse(client);
             Client loadedClient = default;
             try
             {
-                using (var context = new UProduseStoreContext(pathToServer))
-                {
-                    loadedClient = context.Clients.FirstOrDefault(clientFromDB => clientFromDB.Name == client.Name);
-                }
-                using (var stream = new FileStream(Path, FileMode.OpenOrCreate))
+                loadedClient = context.Clients.FirstOrDefault(clientFromDB => clientFromDB.Name == client.Name);
+
+                using (var stream = new FileStream(pathToBasket, FileMode.OpenOrCreate))
                 {
                     if (stream.Length > 0)
                     {
@@ -146,9 +170,9 @@ namespace UlyanovProduseStore.BL.Controller
                         if (loadedClient.Balance >= sumCostOfBusket)
                         {
                             //Типа отправка заявления о доставке этих продуктов туда-то. 
-                            File.Delete(Path);
+                            File.Delete(pathToBasket);
                             loadedClient.Balance -= sumCostOfBusket;
-                            SavePerson(loadedClient, pathToServer);
+                            SavePerson(loadedClient, context);
                             return true;
                         }
                     }
@@ -163,32 +187,88 @@ namespace UlyanovProduseStore.BL.Controller
         }
 
         /// <summary>
-        /// Метод поиска данных о пользователе среди сериализованных их версий. Открывает файл с данными по пути указанному 
-        /// в константе Person.PathSaveOfPersons, проверяет на заполненность.
+        /// Проверяет наличие объекта Client в базе данных на основе вводимых и возвращает его.
         /// </summary>
-        /// <typeparam name="T">Тип возвращаемого значения (ограничен Person и его наследниками).</typeparam>
-        /// <param name="inputName">Имя пользователя. </param>
-        /// <param name="inputPasswordOrID">Пароль или ID пользователя (если ищется экземпляр Employee - впишите любое значение).</param>
-        /// <returns> 
-        /// Если файл существует и был заполнен (там сохранён класс T) - возвращает экземпляр класса Client или Employee (в зависимости от значения T).
-        /// Иначе - возвращает null.
+        /// <typeparam name="T">Тип проверяемого объекта. Ограничен Person и его наследниками.</typeparam>
+        /// <param name="inputName">Имя проверяемого объекта.</param>
+        /// <param name="passwordOrID">Пароль проверяемого объекта.</param>
+        /// <param name="context">Объект подключения, на основе которого будет подключение к серверу.</param>
+        /// <returns> Возвращает объект T, если он является Person. Может вернуть default/null, если он не был найден, 
+        ///                                                                                     тип T указан как Person
+        ///                                                                                     или если произошло исключение во время выполнения.
         /// </returns>
-        public static Person LoadOfPerson<T>(string inputName, string passwordOrID, string pathLoad) where T : Person //TODO: ДОПИЛИТЬ ОПИСАНИЯ!!11
+        public static Person LoadOfPerson<T>(string inputName, string passwordOrID, UProduseStoreContext context) where T : Person //TODO: ДОПИЛИТЬ ОПИСАНИЯ!!11
         {
             var nameOfType = typeof(T);
             try
             {
-                using (var context = new UProduseStoreContext(pathLoad))
+                if (nameOfType == typeof(Client))
                 {
-                    if (nameOfType == typeof(Client))
+                    var loadedClient = context.Clients.FirstOrDefault(client => client.Name == inputName
+                                                                             && client.Password == passwordOrID);
+                    return loadedClient;
+                }
+                else if (nameOfType == typeof(Employee))
+                {
+                    Employee newEmployee = context.Employees.FirstOrDefault(DBEmployee => DBEmployee.Name == inputName);
+                    return newEmployee;
+                }
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Сохраняет данные о пользователе в базу данных и возвращает его.
+        /// </summary>
+        /// <typeparam name="T"> Тип возвращаемого и сохраняемого значения. Ограничен Person и его потомками. </typeparam>
+        /// <param name="nameOfPerson"> Имя нового пользователя. </param>
+        /// <param name="passwordOrSecondName"> Пароль или фамилия нового пользователя.</param>
+        /// <param name="context"> Объект подключения требуемый для, собственно, подключения к БД. </param>
+        /// <returns>
+        /// Возвращает null, если входные данные являются null, представляют пустую строку или если T = Person.
+        /// В ином случае - сохраняет и возвращает новый экземпляр класса T.
+        /// </returns>
+        public static Person RegistrationOfPerson<T>(string nameOfPerson, string passwordOrSecondName, UProduseStoreContext context) where T : Person //TODO: Переделать комментарии к методам.
+        {
+            if (string.IsNullOrWhiteSpace(nameOfPerson)
+            || string.IsNullOrWhiteSpace(passwordOrSecondName)
+            || context == null)
+            {
+                return null;
+            }
+            var typeofT = typeof(T);
+            try
+            {
+                if (typeofT == typeof(Client))
+                {
+                    Client newUser = new Client(nameOfPerson, passwordOrSecondName);
+                    Client userWithThisNameOrPassword = context.Clients
+                                                               .FirstOrDefault(client => client.Name == nameOfPerson
+                                                                                      && client.Password == passwordOrSecondName);
+
+                    if (newUser.Name != null && newUser.Password != null && userWithThisNameOrPassword == default)
                     {
-                        var loadedClient = context.Clients.FirstOrDefault(client => client.Name == inputName
-                                                                                 && client.Password == passwordOrID);
-                        return loadedClient;
+                        context.Clients.Add(newUser);
+                        context.SaveChanges();
+                        return newUser;
                     }
-                    else if (nameOfType == typeof(Employee))
+                }
+                else if (typeofT == typeof(Employee))
+                {
+                    Employee newEmployee = new Employee(nameOfPerson, passwordOrSecondName);
+                    Employee employeeWithThisNameOrPassword = context.Employees
+                                                                     .FirstOrDefault(client => client.Name == nameOfPerson
+                                                                                            && client.SecondName == passwordOrSecondName);
+                    if (newEmployee.Name != null && newEmployee.SecondName != null && employeeWithThisNameOrPassword == default)
                     {
-                        Employee newEmployee = context.Employees.FirstOrDefault(DBEmployee => DBEmployee.Name == inputName);
+                        context.Employees.Add(newEmployee);
+                        context.SaveChanges();
                         return newEmployee;
                     }
                 }
@@ -202,98 +282,43 @@ namespace UlyanovProduseStore.BL.Controller
         }
 
         /// <summary>
-        /// Сохраняет данные о пользователе и возвращает его.
+        /// Сохраняет данные о пользователе в базу данных. Не использовать нигде, кроме тестов.
         /// </summary>
-        /// <typeparam name="T">Тип возвращаемого и сохраняемого значения </typeparam>
-        /// <param name="nameOfPerson">Имя нового пользователя. </param>
-        /// <param name="passwordOrID">Пароль или ID нового пользователя (пароль не может быть менее 5 символов).</param>
-        /// <returns>
-        /// Возвращает null, если входные имя или пароль являются null, пусты или состоят только из символов-разделителей, 
-        /// если пользователь с таким именем уже существует, или если T это Person.
-        /// В ином случае - сохраняет и возвращает новый экземпляр класса T.
-        /// </returns>
-        public static Person RegistrationOfPerson<T>(string nameOfPerson, string passwordOrSecondName, string pathToSave) where T : Person //TODO: Переделать комментарии к методам.
+        /// <typeparam name="T">Тип сохраняемого значения. Ограничен Person и его потомками. </typeparam>
+        /// <param name="person"> Полноценный экземпляр Person, который будет сохранён.  </param>
+        /// <param name="context"> Объект подключения требуемый для, собственно, подключения к БД. </param>
+        public static void Registration_OfFullPerson<T>(Person person, UProduseStoreContext context) where T : Person
         {
-            if (string.IsNullOrWhiteSpace(nameOfPerson)
-            ||  string.IsNullOrWhiteSpace(passwordOrSecondName)
-            ||  string.IsNullOrWhiteSpace(pathToSave))
-            {
-                return null;
-            }
             var typeofT = typeof(T);
-            try
-            {
-                using (var context = new UProduseStoreContext(pathToSave))
-                {
-                    if (typeofT == typeof(Client))
-                    {
-                        Client newUser = new Client(nameOfPerson, passwordOrSecondName);
-                        Client userWithThisNameOrPassword = context.Clients
-                                                                   .FirstOrDefault(client => client.Name == nameOfPerson
-                                                                                          && client.Password == passwordOrSecondName);
 
-                        if (newUser.Name != null && newUser.Password != null && userWithThisNameOrPassword == default)
-                        {
-                            context.Clients.Add(newUser);
-                            context.SaveChanges();
-                            return newUser;
-                        }
-                    }
-                    else if (typeofT == typeof(Employee))
-                    {
-                        Employee newEmployee = new Employee(nameOfPerson, passwordOrSecondName);
-                        Employee employeeWithThisNameOrPassword = context.Employees
-                                                                         .FirstOrDefault(client => client.Name == nameOfPerson
-                                                                                                && client.SecondName == passwordOrSecondName);
-                        if (newEmployee.Name != null && newEmployee.SecondName != null && employeeWithThisNameOrPassword == default)
-                        {
-                            context.Employees.Add(newEmployee);
-                            context.SaveChanges();
-                            return newEmployee;
-                        }
-                    }
-                }
-                return null;
-            }
-            catch (Exception ex)
+            if (typeofT == typeof(Client))
             {
-                Console.WriteLine(ex.Message);
-                return null;
+                Client newUser = person as Client;
+                context.Clients.Add(newUser);
             }
-        }
-        public static void Registration_OfFullPerson<T>(Person person, string pathToSave) where T : Person
-        {
-            var typeofT = typeof(T);
-            using (var context = new UProduseStoreContext(pathToSave))
+            else if (typeofT == typeof(Client))
             {
-                if (typeofT == typeof(Client))
-                {
-                    Client newUser = person as Client;
-                    context.Clients.Add(newUser);
-                }
-                else if (typeofT == typeof(Client))
-                {
-                    Employee newEmployee = person as Employee;
-                    context.Employees.Add(newEmployee);
-                }
-                context.SaveChanges();
+                Employee newEmployee = person as Employee;
+                context.Employees.Add(newEmployee);
             }
+            context.SaveChanges();
         }
 
         /// <summary>
-        /// Увеличивает баланс экземпляра класса Client и сохраняет изменения клиента.
+        /// Увеличивает значение Balance экземпляра Client и сохраняет эти изменения.
         /// </summary>
-        /// <param name="client">Экземпляр класса Client, для которого будет произведено пополнение. </param>
-        /// <param name="money">Сумма пополнения. </param>
-        /// <returns> Возвращает true, если client не равен null, money более нуля и пополнение было успешно совершено.
-        ///           Иначе - возвращает false. </returns>
-        public static bool UpBalance(Client client, decimal money, string pathToSave) 
+        /// <param name="client"> Экземпляр класса Client, для которого будет произведено пополнение. </param>
+        /// <param name="money"> Сумма пополнения. </param>
+        /// <param name="context"> Объект подключения требуемый для, собственно, подключения к БД. </param>
+        /// <returns> Возвращает true, если client и context не равны null, money более нуля и пополнение было успешно совершено.
+        ///           Иначе - возвращает false, предварительно выводя на экран сообщение об ошибке. </returns>
+        public static bool UpBalance(Client client, decimal money, UProduseStoreContext context) 
         {
             //Да, да, тут должна быть переадресация на платёжные системы и т.д.
-            if (money > 0 && client != null)
+            if (money > 0 && client != null && context != null)
             {
                 client.Balance += money;
-                SavePerson(client, pathToSave);
+                SavePerson(client, context);
                 return true;
             }
             else
@@ -304,73 +329,75 @@ namespace UlyanovProduseStore.BL.Controller
         }
 
         /// <summary>
-        /// Приватный метод, нужный для сохранения данных после операций ClientController.
+        /// Приватный метод, нужный для сохранения данных после операций ClientController-а.
         /// </summary>
-        /// <param name="inputPerson">Сохраняемый клиент. </param>
-        /// <param name="pathToSave">Путь к таблице/БД в которую должен быть сохранён экземпляр Client/Employee. </param>
-        private static bool SavePerson(Person inputPerson, string pathToSave) 
+        /// <param name="inputPerson"> Сохраняемый наследник класса Person. </param>
+        /// <param name="context"> Объект подключения требуемый для, собственно, подключения к БД. </param>
+        /// <returns> Возвращает true, если client и context не равны null, и операция сохранения была успешно совершена.
+        ///           Иначе - возвращает false, предварительно выводя на экран сообщение об ошибке. </returns>
+        private static bool SavePerson(Person inputPerson, UProduseStoreContext context) 
         {
-            if (inputPerson != null)
+            if (inputPerson != null && context != null)
             {
                 try
                 {
-                    using (var context = new UProduseStoreContext(pathToSave))
+                    if (inputPerson is Client)
                     {
-                        if (inputPerson is Client)
-                        {
-                            Client clientToSave = inputPerson as Client;
+                        Client clientToSave = inputPerson as Client;
 
-                            Client clientFromDB = context.Clients.FirstOrDefault(client => client.Name == clientToSave.Name
-                                                                                        && client.Password == clientToSave.Password);
-                            if (clientFromDB != null)
-                            {
-                                clientFromDB.Balance = clientToSave.Balance;  /*TODO: Бьюсь об заклад, это можно сделать лучше. 
+                        Client clientFromDB = context.Clients.FirstOrDefault(client => client.Name == clientToSave.Name
+                                                                                    && client.Password == clientToSave.Password);
+                        if (clientFromDB != null)
+                        {
+                            clientFromDB.Balance = clientToSave.Balance;  /*TODO: Бьюсь об заклад, это можно сделать лучше. 
                                                                                       Полное присоединение не работает. */
-                                clientFromDB.Name = clientToSave.Name;
-                                clientFromDB.Password = clientToSave.Password;
-                                clientFromDB.Id = clientToSave.Id;
+                            clientFromDB.Name = clientToSave.Name;
+                            clientFromDB.Password = clientToSave.Password;
+                            clientFromDB.Id = clientToSave.Id;
 
-                                context.SaveChanges();
-                                return true;
-                            }
-                        }
-                        else if (inputPerson is Employee)
-                        {
-                            Employee employeeToSave = inputPerson as Employee;
-
-                            Employee employeeFromDB = context.Employees.FirstOrDefault(employee => employee.Name == employeeToSave.Name
-                                                                                                && employee.SecondName == employee.SecondName);
-                            if (employeeFromDB != null)
-                            {
-                                employeeFromDB.Id = employeeToSave.Id;
-                                employeeToSave.Name = employeeToSave.Name;
-                                employeeToSave.Position = employeeToSave.Position;
-                                employeeFromDB.Salary = employeeToSave.Salary;
-                                employeeToSave.SecondName = employeeToSave.SecondName;
-
-                                context.SaveChanges();
-                                return true;
-                            }
+                            context.SaveChanges();
                         }
                     }
+                    else if (inputPerson is Employee)
+                    {
+                        Employee employeeToSave = inputPerson as Employee;
+
+                        Employee employeeFromDB = context.Employees.FirstOrDefault(employee => employee.Name == employeeToSave.Name
+                                                                                            && employee.SecondName == employee.SecondName);
+                        if (employeeFromDB != null)
+                        {
+                            employeeFromDB.Id = employeeToSave.Id;
+                            employeeToSave.Name = employeeToSave.Name;
+                            employeeToSave.Position = employeeToSave.Position;
+                            employeeFromDB.Salary = employeeToSave.Salary;
+                            employeeToSave.SecondName = employeeToSave.SecondName;
+
+                            context.SaveChanges();
+                        }
+                    }
+                    else
+                    {
+                        throw new ArgumentException($"Тип {inputPerson} не совпадает с требуемыми типами классов.");
+                    }
+                    return true;
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine(ex.Message);
                     Thread.Sleep(5000);
+                    return false;
                 }
             }
             return false;
         }
 
         /// <summary>
-        /// Удаляет экземпляр класса Product из корзины входного Client. 
-        /// Если таких экземпляров более одного, будет удалено первое вхождение, с соответствующим названием из nameOfTheProductBeDeleted.
+        /// Удаляет экземпляр класса Product из файла-корзины, находимого на основе данных входного Client.
+        /// В процессе данные из файла сохраняются и он пересоздаётся.
         /// </summary>
-        /// <param name="client">Экземпляр класса Client, из корзины которого будет удалён экземпляр Product.</param>
-        /// <param name="NameOfTheProductBeDeleted">Имя удаляемого продукта.</param>
-        /// <returns> Если client не пуст, не пуста его корзина, элемент с именем из входного NameOfTheProductBeDeleted есть в корзине,
-        ///           и если удаление прошло успешно - возвращает true.
+        /// <param name="client"> Экземпляр класса Client, из файла-корзины которого будет удалён экземпляр Product. </param>
+        /// <param name="nameOfTheProductBeDeleted"> Имя удаляемого продукта. </param>
+        /// <returns> Если client и имя удаляемого продукта не пусты и не равны пустой строке,и удаление прошло успешно - возвращает true.
         ///           Иначе - false. 
         /// </returns>
         public static bool DeleteProductFromBasket(Client client, string nameOfTheProductBeDeleted)
@@ -383,7 +410,7 @@ namespace UlyanovProduseStore.BL.Controller
 
                 using (var stream = new FileStream(Path, FileMode.OpenOrCreate))
                 {
-                    if (stream.Length != 0)
+                    if (stream.Length > 0)
                     {
                         listWithProducts = bFormatter.Deserialize(stream) as List<Product>;
                     }
@@ -413,7 +440,7 @@ namespace UlyanovProduseStore.BL.Controller
         }
 
         /// <summary>
-        /// Возвращает пароль входного пользователя. 
+        /// Возвращает пароль входного объекта Client. 
         /// </summary>
         /// <param name="client">Клиент из которого будет производится чтение.</param>
         /// <returns></returns>
@@ -431,19 +458,26 @@ namespace UlyanovProduseStore.BL.Controller
         #endregion
 
         /// <summary>
-        /// Строка подключения к БД сотрудников.
+        /// Строка подключения к "боевой" БД.
         /// </summary>
         public const string ConnectToMainServer = "MainServerConnection";
 
         /// <summary>
-        /// Строка подключения к тестовой БД сотрудников.
+        /// Строка подключения к тестовой БД.
         /// </summary>
         public const string ConnectToTestServer = "TestServerConnection";
 
         /// <summary>
-        /// При использовании заменить слово NAME на другое значение.
+        /// Константа - путь к файлу-корзине объекта Client. 
+        /// При использовании заменить слово NAME на другое значение с помощью метода-парсера.
         /// </summary>
         public const string SavePath = "BusketOf_NAME.dat";
+
+        /// <summary>
+        /// Метод-парсер для константы, закреплённой как путь к файлу.
+        /// </summary>
+        /// <param name="client"> Объект Client, поле Name которого будет использовано для парса строки.</param>
+        /// <returns> Возвращает это константу, изменённую под нужды метода. </returns>
         private static string SavePathParse(Client client)
         {
             if (client != null)

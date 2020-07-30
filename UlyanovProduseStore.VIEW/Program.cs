@@ -3,6 +3,7 @@ using UlyanovProduseStore.BL.Controller;
 using UlyanovProduseStore.BL.Model;
 using System.Linq;
 using System.Threading;
+using UlyanovProduseStore.BL;
 
 namespace UlyanovProduseStore.VIEW
 {
@@ -10,14 +11,17 @@ namespace UlyanovProduseStore.VIEW
     {
         static void Main(string[] args)
         {
-            string name;
-            string password;
             Client сlient = new Client();
+            var context = new UProduseStoreContext(ClientController.ConnectToMainServer);
+
             while (true)
             {
                 Console.Clear();
                 Console.WriteLine("Здравствуйте уважаемый пользователь! Если вы зарегистрированы, введите E и введите свои данные.");
                 Console.WriteLine("Или если вы не зарегистрированы, введите R и введите данные о вас.");
+                string name;
+                string password;
+
                 switch (Console.ReadKey().Key)
                 {
                     case ConsoleKey.R:
@@ -25,7 +29,7 @@ namespace UlyanovProduseStore.VIEW
                         name = Console.ReadLine();
                         Console.Write("Ваш новый пароль: ");
                         password = Console.ReadLine();
-                        сlient = ClientController.RegistrationOfPerson<Client>(name, password, ClientController.ConnectToMainServer) as Client;
+                        сlient = ClientController.RegistrationOfPerson<Client>(name, password, context) as Client;
 
                         if (сlient == null)
                         {
@@ -41,7 +45,7 @@ namespace UlyanovProduseStore.VIEW
                         name = Console.ReadLine();
                         Console.Write("Пароль: ");
                         password = Console.ReadLine();
-                        сlient = ClientController.LoadOfPerson<Client>(name, password, ClientController.ConnectToMainServer) as Client;
+                        сlient = ClientController.LoadOfPerson<Client>(name, password, context) as Client;
 
                         if (сlient == null)
                         {
@@ -58,7 +62,7 @@ namespace UlyanovProduseStore.VIEW
                 Console.Clear();
                 break;
             }
-            var products = ProductController.LoadProducts(Product.ConnectStringToServerOfProducts);
+            var products = ProductController.LoadProducts(context);
 
             while (true)
             {
@@ -82,20 +86,29 @@ namespace UlyanovProduseStore.VIEW
                 var inputKey = Console.ReadKey().Key;
                 switch (inputKey)
                 {
-                    //case ConsoleKey.E:
-                    //    Console.WriteLine("\nВведите полное название продукта.");
-                    //    string inputNameOfProduct = Console.ReadLine();
+                    case ConsoleKey.E:
+                        Console.WriteLine("\nВведите полное название продукта.");
+                        string inputNameOfProduct = Console.ReadLine();
 
-                    //    var product = products.SingleOrDefault(x => ProductController.GetName(x) == inputNameOfProduct);
-                    //    if (product == default)
-                    //    {
-                    //        Console.WriteLine("Продукта с таким именем не существует в продаже!");
-                    //        break;
-                    //    }
-                    //    ClientController.AddProductInBasket(сlient, product, ClientController.ConnectStringToServerOfClients);
-                    //    Console.WriteLine($"Продукт {inputNameOfProduct} добавлен в корзину!");
-                    //    Thread.Sleep(6000);
-                    //    break;
+                        var prod = products.SingleOrDefault(x => ProductController.GetName(x) == inputNameOfProduct);
+                        if (prod != default)
+                        {
+                            if (ClientController.WriteProductInFileBasket(сlient, prod))
+                            {
+                                Console.WriteLine($"Продукт {inputNameOfProduct} добавлен в корзину!");
+                            }
+                            else
+                            {
+                                Console.WriteLine("Не удалось добавить продукт в корзину. Проверьте данные аккаунта на повреждения.");
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine("Продукта с таким именем не существует в продаже!");
+                            break;
+                        }
+                        Thread.Sleep(6000);
+                        break;
 
                     case ConsoleKey.Q:
                         Console.Write("\nСумма пополнения в рублях: ");
@@ -106,7 +119,7 @@ namespace UlyanovProduseStore.VIEW
                             Console.Clear();
                             continue;
                         }
-                        if (ClientController.UpBalance(сlient, input, ClientController.ConnectToMainServer))
+                        if (ClientController.UpBalance(сlient, input, context))
                         {
                             Console.WriteLine($"Ваш баланс пополнен на {input} рублей и теперь составляет {ClientController.GetBalance(сlient)} рублей.");
                             Thread.Sleep(6000);
@@ -120,18 +133,17 @@ namespace UlyanovProduseStore.VIEW
 
                         if (Console.ReadLine().ToLower() == "да")
                         {
-                            //if (ClientController.Buy(сlient, ClientController.ConnectStringToServerOfClients))
-                            //{
-                            //    Console.WriteLine("Покупка успешно совершена. Ваши данные после покупки:");
-                            //    Console.WriteLine($"Баланс: {ClientController.GetBalance(сlient)}");
-                            //    Console.WriteLine($"Коэффициент скидки:{ClientController.GetDiscountRate(сlient)}");
-                            //    Thread.Sleep(6000);
-                            //}
-                            //else
-                            //{
-                            //    Console.Write("Ваш баланс меньше чем общая стоимость корзины с учётом коэффициента скидки,");
-                            //    Console.Write("ваш аккаунт повреждён или корзина пуста! \n");
-                            //}
+                            if (ClientController.Buy(сlient, context, false))
+                            {
+                                Console.WriteLine("Покупка успешно совершена. Ваши данные после покупки:");
+                                Console.WriteLine($"Баланс: {ClientController.GetBalance(сlient)}");
+                                Thread.Sleep(6000);
+                            }
+                            else
+                            {
+                                Console.Write("Ваш баланс меньше чем общая стоимость корзины с учётом коэффициента скидки,");
+                                Console.Write("ваш аккаунт повреждён или корзина пуста! \n");
+                            }
                             Thread.Sleep(6000);
                         }
                         break;

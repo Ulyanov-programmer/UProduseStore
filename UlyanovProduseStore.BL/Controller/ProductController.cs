@@ -13,20 +13,17 @@ namespace UlyanovProduseStore.BL.Controller
         /// </summary>
         /// <returns> Возвращает заполненный лист с экземплярами Product, если файл не пуст (создаётся, если не найден).
         ///           Если он был пуст - создаёт базовое представление List Product, сериализует его и возвращает. </returns>
-        public static List<Product> LoadProducts(string pathLoad)
+        public static List<Product> LoadProducts(UProduseStoreContext context)
         {
-            using (var context = new UProduseStoreContext(pathLoad))
+            try
             {
-                try
-                {
-                    List<Product> products = context.Products.ToList();
-                    return products;
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex.Message);
-                    return new List<Product>();
-                }
+                List<Product> products = context.Products.ToList();
+                return products;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                return new List<Product>();
             }
         }
 
@@ -34,7 +31,7 @@ namespace UlyanovProduseStore.BL.Controller
         /// На основе вводимых данных дополняет файл с Product-ами новым экземпляром.
         /// </summary>
         /// <param name="getEmployee">Объект-защита от несанкционированного доступа.</param>
-        public static void AddProducts(Employee getEmployee, string pathLoad) //TODO: Переделать комментарии.
+        public static void AddProducts(Employee getEmployee, UProduseStoreContext context) //TODO: Переделать комментарии.
         {
             #region GetNullEmployee
             if (getEmployee == null)
@@ -44,58 +41,52 @@ namespace UlyanovProduseStore.BL.Controller
             }
             #endregion
             List<Product> loadedProducts = new List<Product>();
+            loadedProducts = context.Products.ToList();
 
-            using (var context = new UProduseStoreContext(pathLoad))
+            while (true)
             {
-                loadedProducts = context.Products.ToList();
+                Console.WriteLine(@"Ведите название, стоимость и цифру категории продукта.");
+                Console.Write("Название: ");
+                string inputName = Console.ReadLine();
 
-                while (true)
+                if (loadedProducts.Any(x => x.Name == inputName))
                 {
-                    Console.WriteLine(@"Ведите название, стоимость и цифру категории продукта.");
-                    Console.Write("Название: ");
-                    string inputName = Console.ReadLine();
-
-                    if (loadedProducts.Any(x => x.Name == inputName))
-                    {
-                        Console.WriteLine("Продукт с такими именем уже существует!");
-                        Thread.Sleep(5000);
-                        continue;
-                    }
-
-                    Console.Write("Стоимость (в рублях): ");
-                    decimal.TryParse(Console.ReadLine(), out decimal cost);
-
-                    Console.Write("Номер категории: ");
-                    byte.TryParse(Console.ReadLine(), out byte category);
-
-
-                    loadedProducts.Add(new Product(inputName, cost));
-
-                    Console.WriteLine(@"Продукт добавлен, но изменения не сохранены.");
-                    Console.WriteLine(@"Если более не собираетесь их добавлять, введите ""stop"". В ином случае - введите что угодно или нажмите Enter.");
-
-                    if (Console.ReadLine() == "stop")
-                    {
-                        Console.Clear();
-                        break;
-                    }
+                    Console.WriteLine("Продукт с такими именем уже существует!");
+                    Thread.Sleep(5000);
+                    continue;
                 }
-                context.SaveChanges();
-                Console.WriteLine("Добавление продуктов завершено, изменения сохранены.");
-                Thread.Sleep(5000);
-            }
-        }
-        public static int AddProducts(Product inputProduct, string pathLoad)
-        {
-            using (var context = new UProduseStoreContext(pathLoad))
-            {
-                context.Products.Add(inputProduct);
-                context.SaveChanges();
 
-                int idOfInputProduct = context.Products.First(prod => prod.Name == inputProduct.Name).Id;
-                return idOfInputProduct;
+                Console.Write("Стоимость (в рублях): ");
+                decimal.TryParse(Console.ReadLine(), out decimal cost);
+
+                Console.Write("Номер категории: ");
+                byte.TryParse(Console.ReadLine(), out byte category);
+
+
+                loadedProducts.Add(new Product(inputName, cost));
+
+                Console.WriteLine(@"Продукт добавлен, но изменения не сохранены.");
+                Console.WriteLine(@"Если более не собираетесь их добавлять, введите ""stop"". В ином случае - введите что угодно или нажмите Enter.");
+
+                if (Console.ReadLine() == "stop")
+                {
+                    Console.Clear();
+                    break;
+                }
             }
+            context.SaveChangesAsync();
+            Console.WriteLine("Добавление продуктов завершено, изменения сохранены.");
+            Thread.Sleep(5000);
         }
+        public static int AddProducts(Product inputProduct, UProduseStoreContext context)
+        {
+            context.Products.Add(inputProduct);
+            context.SaveChanges();
+
+            int idOfInputProduct = context.Products.First(prod => prod.Name == inputProduct.Name).Id;
+            return idOfInputProduct;
+        }
+
         #region GettersSetters
 
         /// <summary>
