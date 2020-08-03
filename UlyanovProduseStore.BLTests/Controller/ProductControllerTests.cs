@@ -37,18 +37,21 @@ namespace UlyanovProduseStore.BL.Controller.Tests
             //Arrange
             var context = new UProduseStoreContext(ClientController.ConnectToTestServer);
             decimal newCost = 500;
-            Product product = new Product(Guid.NewGuid().ToString(), 23);
+            Product productToBeAdded = new Product(Guid.NewGuid().ToString(), 23);
 
-            if (ProductController.AddProducts(product, context) == -1)
+            int idOf_AddedProduct = ProductController.AddProducts(productToBeAdded, context);
+
+            if (idOf_AddedProduct == -1)
             {
                 Assert.Fail("Продукт не был добавлен!");
             }
 
             //Act
-            ProductController.SetCost(newCost, product, context);
+            ProductController.SetCost(newCost, productToBeAdded, context);
+            var loadedProduct = context.Products.FirstOrDefault(prod => prod.Id == idOf_AddedProduct);
 
             //Assert
-            Assert.AreEqual(newCost, product.Cost);
+            Assert.AreEqual(newCost, loadedProduct.Cost);
         }
 
         [TestMethod()]
