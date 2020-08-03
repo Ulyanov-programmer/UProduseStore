@@ -1,4 +1,5 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using UlyanovProduseStore.BL.Controller;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -47,12 +48,13 @@ namespace UlyanovProduseStore.BL.Controller.Tests
         {
             //Arrange
             var context = new UProduseStoreContext(ClientController.ConnectToTestServer);
+
             List<Product> products = new List<Product>()
             {
                 new Product("product1", 10),
                 new Product("product2", 50)
             };
-                
+
             Client client = new Client(Guid.NewGuid().ToString(), "X", products, 500); /* У экземпляра Client в конструктор 
                                                                                           которого была помещена коллекция продуктов
                                                                                           уже вызван WriteProductInFileBasket, 
@@ -83,6 +85,7 @@ namespace UlyanovProduseStore.BL.Controller.Tests
             //Assert
             Assert.IsTrue(isBuyComplete);
             Assert.AreEqual(BalanceBeforeBuy - sumCost, ClientController.GetBalance(client));
+
             Assert.IsFalse(isBuyCompleteNull);
             Assert.IsFalse(isBuyCompleteNullBusket);
             Assert.IsFalse(isBuyCompleteNullBalance);
@@ -93,6 +96,7 @@ namespace UlyanovProduseStore.BL.Controller.Tests
         {
             //Arrange
             string nameOfProductBeDeleted = "product1";
+            string nameof_aNonExistent_Product = "qeupoghpqejvbwepirghqefvojq]=j=30fu103=f0u=1304f=-3f139u13славасоветскомусоюзу-98fh-13f=1u34=90t\n";
 
             List<Product> products = new List<Product>
             {
@@ -100,23 +104,38 @@ namespace UlyanovProduseStore.BL.Controller.Tests
                 new Product(nameOfProductBeDeleted, 10),
                 new Product("product2", 50)
             };
+            List<Product> productsNull = null;
+
             Client client = new Client(Guid.NewGuid().ToString(), "X", products, 5000);
             Client clientNull = null;
+            Client clientWithNullBasket = new Client(Guid.NewGuid().ToString(), "X", productsNull, 5000);
 
-            int CountOfProductsEligibleBeforeRemoval = ClientController.ReadFileWithListOfProduct(client, false)
+
+            int countOfProductsEligibleBeforeRemoval = ClientController.ReadFileWithListOfProduct(client, false)
                                                                        .Where(prod => ProductController.GetName(prod) == nameOfProductBeDeleted)
                                                                        .Count(); // Количество продуктов с названием "имя удаляемого продукта" ДО удаления.
             //Act
-            bool productIsDeleted = ClientController.DeleteProductFromBasket(client, nameOfProductBeDeleted);
-            bool productIsDeletedFromClientNull = ClientController.DeleteProductFromBasket(clientNull, nameOfProductBeDeleted);
+            bool isDeleted = ClientController.DeleteProductFromBasket(client, nameOfProductBeDeleted);
 
             int сountOfProductsEligibleAfterRemoval = ClientController.ReadFileWithListOfProduct(client, false)
                                                       .Where(prod => ProductController.GetName(prod) == nameOfProductBeDeleted)
                                                       .Count(); // Количество продуктов с названием "имя удаляемого продукта" ПОСЛЕ удаления.
+
+
+            bool isDeletedFromNullClient = ClientController.DeleteProductFromBasket(clientNull, nameOfProductBeDeleted);
+            bool isDeletedFromClient_WithNullBasket = ClientController.DeleteProductFromBasket(clientWithNullBasket, nameOfProductBeDeleted);
+            bool isDeleted_aNonExistent_Product = ClientController.DeleteProductFromBasket(clientNull, nameof_aNonExistent_Product);
+            bool isDeleted_NullString = ClientController.DeleteProductFromBasket(clientNull, null);
+
+            
             //Assert
-            Assert.IsTrue(productIsDeleted);
-            Assert.IsFalse(productIsDeletedFromClientNull);
-            Assert.AreNotEqual(CountOfProductsEligibleBeforeRemoval, сountOfProductsEligibleAfterRemoval);
+            Assert.IsTrue(isDeleted);
+            Assert.AreNotEqual(countOfProductsEligibleBeforeRemoval, сountOfProductsEligibleAfterRemoval);
+
+            Assert.IsFalse(isDeletedFromNullClient);
+            Assert.IsFalse(isDeletedFromClient_WithNullBasket);
+            Assert.IsFalse(isDeleted_aNonExistent_Product);
+            Assert.IsFalse(isDeleted_NullString);
         }
 
         [TestMethod()]
@@ -172,14 +191,38 @@ namespace UlyanovProduseStore.BL.Controller.Tests
             //Arrange
             string name = Guid.NewGuid().ToString();
             Client client = new Client(name, "PASSWORD" + name);
+
             Product product = new Product("PROD" + name, 1500);
+            Product productNULL = null;
+
+            List<Product> productS = new List<Product>();
+            productS.Add(new Product("PROD1" + name, 15));
+            productS.Add(new Product("PROD2" + name, 15));
+
+            List<Product> productS_null = null;
 
             //Act
             ClientController.WriteProductInFileBasket(client, product);
-            var listWithProductsOfClient = ClientController.ReadFileWithListOfProduct(client, false);
+            var list_With_Product_OfClient = ClientController.ReadFileWithListOfProduct(client, false);
+            ClientController.WriteProductInFileBasket(client, productS);
+            var list_With_Products_OfClient = ClientController.ReadFileWithListOfProduct(client, false);
+
+            bool whenClientNull = ClientController.WriteProductInFileBasket(null, product);
+            bool whenProductNull = ClientController.WriteProductInFileBasket(client, productNULL);
+            bool whenClient_And_ProductNull = ClientController.WriteProductInFileBasket(null, productNULL);
+            bool whenProductS_Null = ClientController.WriteProductInFileBasket(client, productS_null);
+            bool whenClient_With_ProductSNull = ClientController.WriteProductInFileBasket(null, productS);
+
 
             //Assert
-            Assert.IsNotNull(listWithProductsOfClient);
+            Assert.IsNotNull(list_With_Product_OfClient);
+            Assert.IsNotNull(list_With_Products_OfClient);
+
+            Assert.IsFalse(whenClientNull);
+            Assert.IsFalse(whenProductNull);
+            Assert.IsFalse(whenClient_And_ProductNull);
+            Assert.IsFalse(whenProductS_Null);
+            Assert.IsFalse(whenClient_With_ProductSNull);
         }
     }
 }

@@ -1,16 +1,18 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Text;
 
 namespace UlyanovProduseStore.BL.Model
 {
+    /// <summary>
+    /// Класс продукта, определяющий его основные поля, такие как имя и стоимость. Может быть сериализован и добавлен в таблицу в БД.
+    /// </summary>
     [Serializable]
     public class Product
     {
         /// <summary>
         /// Создаёт экземпляр класса Product.
         /// </summary>
-        /// <param name="name"> Его имя.</param>
+        /// <param name="name"> Его имя. </param>
         /// <param name="cost"> Его стоимость ( на данный момент - в рублях). </param>
         public Product(string name, decimal cost)
         {
@@ -26,11 +28,6 @@ namespace UlyanovProduseStore.BL.Model
             {
                 messageAboutExeption.AppendLine("Стоимость продукта не может быть ниже или равна нулю!");
             }
-            //TODO: Добавить метод присвоения категории продукту.
-            //if (numberOfCategory >= Categories.Count || numberOfCategory < 0)
-            //{
-            //    messageAboutExeption.AppendLine("Номер категории не может быть таким!");
-            //}
             #endregion
 
             if (messageAboutExeption.Length > 0)
@@ -43,14 +40,32 @@ namespace UlyanovProduseStore.BL.Model
             Cost = cost;
         }
 
+        /// <summary>
+        /// Пустой конструктор для работы Entity Framework.
+        /// </summary>
         public Product() { }
 
         #region Params
 
+        /// <summary>
+        /// Идентификатор экземпляра Product согласно данным из БД.
+        /// </summary>
         public int Id { get; set; }
+
+        /// <summary>
+        /// Имя экземпляра Product.
+        /// </summary>
         public string Name { get; set; }
+
+        /// <summary>
+        /// Стоимость экземпляра Product.
+        /// </summary>
         public decimal Cost { get; set; }
-        public string CategoryId { get; set; }
+
+        /// <summary>
+        /// Это вообще хрен его знает зачем тут.
+        /// </summary>
+        public string CategoryId { get; set; } //TODO: В планах добавить значение категории через связь таблиц.
         #endregion
 
         /// <summary>

@@ -8,10 +8,13 @@ using UlyanovProduseStore.BL.Model;
 
 namespace UlyanovProduseStore.BL.Controller
 {
+    /// <summary>
+    /// Класс-контроллер, с помощью статических методов которого можно работать с моделью Client.
+    /// </summary>
     public class ClientController
     {
         /// <summary>
-        /// Дополняет сериализованный список Product в файле пользователя. Если он не был создан - создаёт его.
+        /// Дополняет сериализованный список Product в файле пользователя. Если список не был создан - создаёт его.
         /// </summary>
         /// <param name="client">Клиент в "файл-корзину" которого будет добавлен продукт.</param>
         /// <param name="product">Объект Product, который будет добавлен.</param>
@@ -41,7 +44,7 @@ namespace UlyanovProduseStore.BL.Controller
         }
 
         /// <summary>
-        /// Дополняет сериализованный список Product в файле пользователя. Если он не был создан - создаёт его.
+        /// Дополняет сериализованный список Product в файле пользователя. Если список не был создан - создаёт его.
         /// Внимание, данный метод должен эксплуатироваться только в тестах!
         /// </summary>
         /// <param name="client">Клиент в "файл-корзину" которого будет добавлен продукт.</param>
@@ -197,7 +200,7 @@ namespace UlyanovProduseStore.BL.Controller
         ///                                                                                     тип T указан как Person
         ///                                                                                     или если произошло исключение во время выполнения.
         /// </returns>
-        public static Person LoadOfPerson<T>(string inputName, string passwordOrID, UProduseStoreContext context) where T : Person //TODO: ДОПИЛИТЬ ОПИСАНИЯ!!11
+        public static Person LoadOfPerson<T>(string inputName, string passwordOrID, UProduseStoreContext context) where T : Person
         {
             var nameOfType = typeof(T);
             try
@@ -234,7 +237,7 @@ namespace UlyanovProduseStore.BL.Controller
         /// Возвращает null, если входные данные являются null, представляют пустую строку или если T = Person.
         /// В ином случае - сохраняет и возвращает новый экземпляр класса T.
         /// </returns>
-        public static Person RegistrationOfPerson<T>(string nameOfPerson, string passwordOrSecondName, UProduseStoreContext context) where T : Person //TODO: Переделать комментарии к методам.
+        public static Person RegistrationOfPerson<T>(string nameOfPerson, string passwordOrSecondName, UProduseStoreContext context) where T : Person
         {
             if (string.IsNullOrWhiteSpace(nameOfPerson)
             || string.IsNullOrWhiteSpace(passwordOrSecondName)
@@ -405,24 +408,27 @@ namespace UlyanovProduseStore.BL.Controller
             if (client != null && string.IsNullOrWhiteSpace(nameOfTheProductBeDeleted) == false)
             {
                 var bFormatter = new BinaryFormatter();
-                string Path = SavePathParse(client);
+                string path = SavePathParse(client);
                 List<Product> listWithProducts = new List<Product>();
 
-                using (var stream = new FileStream(Path, FileMode.OpenOrCreate))
+                using (var stream = new FileStream(path, FileMode.OpenOrCreate))
                 {
                     if (stream.Length > 0)
                     {
                         listWithProducts = bFormatter.Deserialize(stream) as List<Product>;
                     }
                 }
-                listWithProducts.RemoveAll(prod => prod.Name == nameOfTheProductBeDeleted);
-                File.Delete(Path);
-
-                using (var stream = new FileStream(Path, FileMode.Create))
+                if (listWithProducts.Any(prod => prod.Name == nameOfTheProductBeDeleted))
                 {
-                    bFormatter.Serialize(stream, listWithProducts);
+                    listWithProducts.RemoveAll(prod => prod.Name == nameOfTheProductBeDeleted);
+                    File.Delete(path);
+
+                    using (var stream = new FileStream(path, FileMode.Create))
+                    {
+                        bFormatter.Serialize(stream, listWithProducts);
+                    }
+                    return true;
                 }
-                return true;
             }
             return false;
         }
@@ -457,6 +463,8 @@ namespace UlyanovProduseStore.BL.Controller
         }
         #endregion
 
+        #region UsefulConstants
+
         /// <summary>
         /// Строка подключения к "боевой" БД.
         /// </summary>
@@ -472,6 +480,7 @@ namespace UlyanovProduseStore.BL.Controller
         /// При использовании заменить слово NAME на другое значение с помощью метода-парсера.
         /// </summary>
         public const string SavePath = "BusketOf_NAME.dat";
+        #endregion
 
         /// <summary>
         /// Метод-парсер для константы, закреплённой как путь к файлу.

@@ -10,8 +10,8 @@ namespace UlyanovProduseStore.BL.Model
         /// <summary>
         /// Доступный только для наследников Person конструктор, в нём определяется значение общих полей.
         /// </summary>
-        /// <param name="name">Имя наследника Person.</param>
-        public Person(string name)
+        /// <param name="name"> Имя наследника Person. </param>
+        protected Person(string name)
         {
             if (string.IsNullOrWhiteSpace(name))
             {
@@ -24,6 +24,9 @@ namespace UlyanovProduseStore.BL.Model
 
         #region params
 
+        /// <summary>
+        /// Имя наследника класса Person.
+        /// </summary>
         public string Name { get; set; }
         #endregion
 

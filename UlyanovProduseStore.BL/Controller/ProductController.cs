@@ -6,13 +6,17 @@ using System.Threading;
 
 namespace UlyanovProduseStore.BL.Controller
 {
+    /// <summary>
+    /// Класс-контроллер, с помощью статических методов которого можно работать с моделью Product.
+    /// </summary>
     public static class ProductController
     {
         /// <summary>
-        /// Возвращает список доступных продуктов из файла (путь - в Product.PathSaveOfProducts). 
+        /// Возвращает объект List Product из базы данных.
         /// </summary>
-        /// <returns> Возвращает заполненный лист с экземплярами Product, если файл не пуст (создаётся, если не найден).
-        ///           Если он был пуст - создаёт базовое представление List Product, сериализует его и возвращает. </returns>
+        /// <param name="context"> Объект контекста, на основе которого будет создано подключение к БД. </param>
+        /// <returns> Если данные были успешно загружены - возвращает List Product на основе доступных в БД. 
+        ///           Если во время загрузки произошла ошибка, возвращает новый List Product имеющий базовое представление. </returns>
         public static List<Product> LoadProducts(UProduseStoreContext context)
         {
             try
@@ -28,15 +32,16 @@ namespace UlyanovProduseStore.BL.Controller
         }
 
         /// <summary>
-        /// На основе вводимых данных дополняет файл с Product-ами новым экземпляром.
+        /// На основе вводимых во время выполнения метода данных дополняет таблицу с Product-ами в БД новым экземпляром.
         /// </summary>
         /// <param name="getEmployee">Объект-защита от несанкционированного доступа.</param>
-        public static void AddProducts(Employee getEmployee, UProduseStoreContext context) //TODO: Переделать комментарии.
+        /// <param name = "context"> Объект контекста, на основе которого будет создано подключение к БД. </param>
+        public static void AddProducts(Employee getEmployee, UProduseStoreContext context)
         {
-            #region GetNullEmployee
-            if (getEmployee == null)
+            #region GetArguments
+            if (getEmployee == null || context == null)
             {
-                Console.WriteLine("Требуемый клиент пуст!");
+                Console.WriteLine("входные данные некорректны!");
                 return;
             }
             #endregion
@@ -78,19 +83,31 @@ namespace UlyanovProduseStore.BL.Controller
             Console.WriteLine("Добавление продуктов завершено, изменения сохранены.");
             Thread.Sleep(5000);
         }
+
+        /// <summary>
+        /// На основе экземпляра Product дополняет таблицу с Product-ами в БД новым экземпляром.
+        /// </summary>
+        /// <param name="inputProduct"> Экземпляр Product, данными которого будет пополнена соответствующая таблица в БД. </param>
+        /// <param name="context"> Объект контекста, на основе которого будет создано подключение к БД. </param>
+        /// <returns> Возвращает ID добавленного в БД экземпляра Product. Если контекст или Produc пусты, возвращает -1. </returns>
         public static int AddProducts(Product inputProduct, UProduseStoreContext context)
         {
-            context.Products.Add(inputProduct);
-            context.SaveChanges();
+            if (context != null && inputProduct != null)
+            {
+                context.Products.Add(inputProduct);
+                context.SaveChanges();
 
-            int idOfInputProduct = context.Products.First(prod => prod.Name == inputProduct.Name).Id;
-            return idOfInputProduct;
+                int idOfInputProduct = context.Products.First(prod => prod.Name == inputProduct.Name).Id;
+                return idOfInputProduct;
+            }
+            return -1;
         }
-
+        
+        //TODO: Добавить метод удаления продукта из таблицы в БД.
         #region GettersSetters
 
         /// <summary>
-        /// Возвращает поле Name продукта. 
+        /// Возвращает поле Name экземпляра Product. 
         /// </summary>
         /// <param name="product">Экземпляр Product из которого будет идти считывание.</param>
         /// <returns></returns>
@@ -100,7 +117,7 @@ namespace UlyanovProduseStore.BL.Controller
         }
 
         /// <summary>
-        /// Возвращает поле Cost продукта.
+        /// Возвращает поле Cost экземпляра Product.
         /// </summary>
         /// <param name="product">Экземпляр Product из которого будет идти считывание.</param>
         /// <returns></returns>
@@ -110,41 +127,45 @@ namespace UlyanovProduseStore.BL.Controller
         }
 
         /// <summary>
-        /// Возвращает поле Category 
-        /// </summary>
-        /// <param name="product"></param>
-        /// <returns></returns>
-        //public static string GetCategory(Product product)
-        //{
-        //    return product;
-        //}
-
-        /// <summary>
-        /// изменяет поле Name продукта. 
+        /// Изменяет поле Name экземпляра Product и сохраняет изменения в БД. 
         /// </summary>
         /// <param name="newName">Новое имя экземпляра Product.</param>
-        /// <param name="product">Экземпляр Product который будет изменён.</param>
-        public static void SetName(string newName, Product product)
+        /// <param name="inputProduct">Экземпляр Product который будет изменён.</param>
+        public static bool SetName(string newName, Product inputProduct, UProduseStoreContext context)
         {
-            if (string.IsNullOrWhiteSpace(newName))
+            if (string.IsNullOrWhiteSpace(newName) == false && context != null)
             {
-                throw new ArgumentNullException(nameof(newName), "Название продукта не может быть пустым!");
+                var productFromDB = context.Products.FirstOrDefault(prod => prod.Name == inputProduct.Name);
+                if (productFromDB != default)
+                {
+                    productFromDB.Name = newName;
+
+                    context.SaveChanges();
+                    return true;
+                }
             }
-            product.Name = newName;
+            return false;
         }
 
         /// <summary>
-        /// Изменяет поле Cost продукта.
+        /// Изменяет поле Cost экземпляра Product и сохраняет изменения в БД.
         /// </summary>
         /// <param name="newCost">Новое значение Cost для экземпляра Product.</param>
         /// <param name="product">Экземпляр Product который будет изменён.</param>
-        public static void SetCost(decimal newCost, Product product)
+        public static bool SetCost(decimal newCost, Product product, UProduseStoreContext context)
         {
-            if (newCost <= 0)
+            if (newCost > 0 && context != null)
             {
-                throw new ArgumentNullException(nameof(newCost), "Стоимость продукта не может быть ниже или равна нулю!");
+                var productFromDB = context.Products.FirstOrDefault(prod => prod.Cost == product.Cost);
+                if (productFromDB != default)
+                {
+                    productFromDB.Cost = newCost;
+
+                    context.SaveChanges();
+                    return true;
+                }
             }
-            product.Cost = newCost;
+            return false;
         }
         #endregion
     }
