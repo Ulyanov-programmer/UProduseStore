@@ -55,17 +55,27 @@
   <ItemGroup>
     <Compile Include="Controller\ProductController.cs" />
     <Compile Include="Controller\ClientController.cs" />
+    <Compile Include="Migrations\202009240807555_Default.cs" />
+    <Compile Include="Migrations\202009240807555_Default.designer.cs">
+      <DependentUpon>202009240807555_Default.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\Configuration.cs" />
+    <Compile Include="Model\Basket.cs" />
     <Compile Include="Model\Client.cs" />
     <Compile Include="Model\Employee.cs" />
     <Compile Include="Model\Person.cs" />
     <Compile Include="Model\Product.cs" />
-    <Compile Include="Model\UPSClientContext.cs" />
-    <Compile Include="Model\UPSEmployeeContext.cs" />
+    <Compile Include="Controller\UPSContext.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Migrations\202009240807555_Default.resx">
+      <DependentUpon>202009240807555_Default.cs</DependentUpon>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

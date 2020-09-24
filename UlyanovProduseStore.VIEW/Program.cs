@@ -8,58 +8,76 @@ namespace UlyanovProduseStore.VIEW
 {
     class Program
     {
-        static void Main(string[] args)
+        static void Main()
         {
-            string name;
-            string password;
+            UPSContext context = new UPSContext(UPSContext.StringConnectToMainServer);
             Client сlient = default;
+            Basket basket = new Basket();
+
+            #region Authorization
+
             while (true)
             {
                 Console.Clear();
-                Console.WriteLine("Здравствуйте уважаемый пользователь! Если вы зарегистрированы, введите E и введите свои данные.");
+                Console.WriteLine("Здравствуйте уважаемый пользователь! Если вы зарегистрированы, введите L и введите свои данные.");
                 Console.WriteLine("Или если вы не зарегистрированы, введите R и введите данные о вас.");
-                switch (Console.ReadKey().Key)
+                switch (Console.ReadKey(true).Key)
                 {
-                    case ConsoleKey.R:
-                        Console.Write("\nВаше новое имя: ");
-                        name = Console.ReadLine();
-                        Console.Write("Ваш новый пароль: ");
-                        password = Console.ReadLine();
-                        сlient = ClientController.RegistrationOfPerson<Client>(name, password, "X", UPSClientContext.StringConnectToMainClientServer) as Client;
+                    #region key L (log-in)
 
-                        if (сlient == null)
-                        {
-                            Console.Write("Данные некорректны (пустое имя/пароль/в них только символы разделители),");
-                            Console.WriteLine(" или пользователь с таким именем уже существует!");
-                            Thread.Sleep(6000);
-                            continue;
-                        }
-
-                        break;
-
-                    case ConsoleKey.E:
-                        Console.Write("\nИмя: ");
-                        name = Console.ReadLine();
+                    case ConsoleKey.L:
+                        Console.Write("Имя: ");
+                        string newName = Console.ReadLine();
                         Console.Write("Пароль: ");
-                        password = Console.ReadLine();
-                        сlient = ClientController.LoadOfPerson<Client>(name, password) as Client;
+                        string newPassword = Console.ReadLine();
 
-                        if (сlient == null)
+                        сlient = ClientController.LoadOfPerson<Client>(newName, newPassword, context) as Client;
+
+                        if (сlient is null)
                         {
                             Console.Write("Данные некорректны (пустое имя/пароль/в них только символы разделители или они неверны).");
-                            Thread.Sleep(6000);
-                            continue;
                         }
+                        else
+                        {
+                            basket.Client = сlient;
+                            Console.WriteLine($"Добро пожаловать, {сlient}!");
+                        }
+                        Thread.Sleep(6000);
 
                         break;
 
-                    default:
-                        continue;
+                    #endregion
+
+                    #region key R (registration)
+
+                    case ConsoleKey.R:
+                        Console.Write("Ваше новое имя: ");
+                        string name = Console.ReadLine();
+                        Console.Write("Ваш новый пароль: ");
+                        string password = Console.ReadLine();
+
+                        сlient = ClientController.RegistrationOfPerson<Client>(name, password, context) as Client;
+
+                        if (сlient is null)
+                        {
+                            Console.Write("Данные некорректны (пустое имя/пароль/в них только символы разделители), ");
+                            Console.WriteLine("или пользователь с таким именем уже существует!");
+                            Thread.Sleep(6000);
+                            continue;
+                        }
+                        basket.Client = сlient;
+
+                        break;
+
+                     #endregion
                 }
-                Console.Clear();
                 break;
             }
-            var products = ProductController.LoadProducts(UPSEmployeeContext.StringConnectToEmployeeServer);
+
+            #endregion
+
+
+            var products = ProductController.LoadProducts(context);
 
             while (true)
             {
@@ -71,8 +89,9 @@ namespace UlyanovProduseStore.VIEW
                     {
                         Console.WriteLine($"{ProductController.GetName(product)}, ");
                         Console.Write($"стоимость: {ProductController.GetCost(product)} рублей. \n\n");
+                        //TODO: изменить логику так, что-бы подробная информация выводилась только при вводе имени продукта.
                     }
-                    Console.WriteLine("Нажмите E(англ), если хотите добавить один из продуктов в корзину.");
+                    Console.WriteLine("Нажмите A(англ), если хотите добавить один из продуктов в корзину.");
                     Console.WriteLine("Если ваша корзина уже заполнена, нажмите Y, что бы совершить покупку.");
                     Console.WriteLine("Если хотите удалить продукт из корзины, нажмите I, после чего вы введёте его имя.");
                 }
@@ -80,39 +99,51 @@ namespace UlyanovProduseStore.VIEW
                 Console.WriteLine("(раскладка не учитывается)");
                 //TODO: Добавить сохранение чека с информацией о покупке.
 
-                var inputKey = Console.ReadKey().Key;
-                switch (inputKey)
+                switch (Console.ReadKey(true).Key)
                 {
+                    #region key E (adding product)
+
                     case ConsoleKey.E:
-                        Console.WriteLine("\nВведите полное название продукта.");
+                        Console.WriteLine("Введите полное название продукта.");
                         string inputNameOfProduct = Console.ReadLine();
 
-                        var product = products.SingleOrDefault(x => ProductController.GetName(x) == inputNameOfProduct);
-                        if (product == default)
+                        var product = products.SingleOrDefault(prod => prod.Name == inputNameOfProduct);
+
+                        if (product != default)
                         {
-                            Console.WriteLine("Продукта с таким именем не существует в продаже!");
-                            break;
+                            if (ClientController.AddProductInBasket(basket, product))
+                            {
+                                Console.WriteLine($"Продукт с именем {product} добавлен в корзину!");
+                                Thread.Sleep(6000);
+                            }
                         }
-                        //ClientController.AddProductInBasket(сlient, product);
-                        Console.WriteLine($"Продукт {inputNameOfProduct} добавлен в корзину!");
+                        Console.WriteLine("Продукта с таким именем не существует в продаже!");
                         Thread.Sleep(6000);
                         break;
 
+                    #endregion
+
+                    #region key Q (upping balance)
+
                     case ConsoleKey.Q:
-                        Console.Write("\nСумма пополнения в рублях: ");
+                        Console.Write("Сумма пополнения в рублях: ");
+
                         if (decimal.TryParse(Console.ReadLine(), out decimal input) == false)
                         {
                             Console.WriteLine("Были введены некорректные данные!");
                             Thread.Sleep(3000);
-                            Console.Clear();
                             continue;
                         }
-                        if (ClientController.UpBalance(сlient, input, UPSClientContext.StringConnectToMainClientServer))
+                        if (ClientController.UpBalance(сlient, input, context))
                         {
                             Console.WriteLine($"Ваш баланс пополнен на {input} рублей и теперь составляет {ClientController.GetBalance(сlient)} рублей.");
                             Thread.Sleep(6000);
                         }
                         break;
+
+                    #endregion
+
+                    #region key Y (buy)
 
                     case ConsoleKey.Y:
                         Console.Clear();
@@ -136,6 +167,8 @@ namespace UlyanovProduseStore.VIEW
                             Thread.Sleep(6000);
                         }
                         break;
+
+                     #endregion
                 }
             }
         }

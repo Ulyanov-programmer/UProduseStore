@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading;
 using UlyanovProduseStore.BL.Model;
 
@@ -10,16 +8,15 @@ namespace UlyanovProduseStore.BL.Controller
 {
     public class ClientController
     {
-        //public static bool AddProductInBasket(Client client, Product product)
-        //{
-        //    if (product != null && client != null)
-        //    {
-        //        client.BasketOfproducts.Add(product);
-        //        SaveClient(client);
-        //        return true;
-        //    }
-        //    return false;
-        //}
+        public static bool AddProductInBasket(Basket basket, Product product)
+        {
+            if (product != null && basket != null)
+            {
+                basket.Products.Add(product);
+                return true;
+            }
+            return false;
+        }
 
         //public static bool Buy(Client client)
         //{
@@ -49,63 +46,54 @@ namespace UlyanovProduseStore.BL.Controller
         //    return false;
         //}
 
-        public static Person LoadOfPerson<T>(string nameOfPerson, string inputPasswordOrID) where T : Person
+        public static Person LoadOfPerson<T>(string nameOfPerson, string passwordOrSecondName, UPSContext context) where T : Person
         {
-            var binFormatter = new BinaryFormatter();
-            var nameOfType = typeof(T).Name;
+            if (string.IsNullOrWhiteSpace(nameOfPerson) == false &&
+                string.IsNullOrWhiteSpace(passwordOrSecondName) == false)
+            {
+                var nameOfType = typeof(T);
 
-            if (File.Exists(Person.PathSaveOfPersons))
-            {
-                Directory.CreateDirectory(Person.PathSaveOfPersons);
-            }
-            try
-            {
-                if (File.Exists($@"{Person.PathSaveOfPersons}\user{nameOfPerson}.dat"))
+                try
                 {
-                    using (var stream = new FileStream($@"{Person.PathSaveOfPersons}\user{nameOfPerson}.dat", FileMode.Open))
+                    if (nameOfType == typeof(Client))
                     {
-                        if (stream.Length == 0)
+                        var clientFromDb = context.Clients.FirstOrDefault(clint => clint.Name == nameOfPerson &&
+                                                                                   clint.Password == passwordOrSecondName);
+                        if (clientFromDb != default)
                         {
-                            File.Delete($@"{Person.PathSaveOfPersons}\user{nameOfPerson}.dat");
-                            return null;
-                        }
-                        else if (nameOfType == "Client")
-                        {
-                            var loadedClient = binFormatter.Deserialize(stream) as Client;
-                            if (GetPassword(loadedClient) != inputPasswordOrID)
-                            {
-                                return null;
-                            }
-                            return loadedClient;
-                        }
-                        else if(nameOfType == "Employee")
-                        {
-                            var loadedEmployee = binFormatter.Deserialize(stream) as Employee;
-                            return loadedEmployee;
+                            return clientFromDb;
                         }
                     }
+                    else if (nameOfType == typeof(Employee))
+                    {
+                        var employeeFromDb = context.Clients.FirstOrDefault(emp => emp.Name == nameOfPerson &&
+                                                                                   emp.Password == passwordOrSecondName);
+                        if (employeeFromDb != default)
+                        {
+                            return employeeFromDb;
+                        }
+                    }
+                    else
+                        return null;
                 }
-                return null;
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                    return null;
+                }
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-                return null;
-            }
+            return null;
         }
 
-        public static Person RegistrationOfPerson<T>(string nameOfPerson, string passwordOrSecondName, string position, string pathToSave)
+        public static Person RegistrationOfPerson<T>(string nameOfPerson, string passwordOrSecondName, UPSContext context)
         {
-            if (string.IsNullOrWhiteSpace(nameOfPerson) || string.IsNullOrWhiteSpace(passwordOrSecondName))
-            {
-                return null;
-            }
-            try
+            if (string.IsNullOrWhiteSpace(nameOfPerson) is false &&
+                string.IsNullOrWhiteSpace(passwordOrSecondName) is false)
             {
                 var nameOfPersonType = typeof(T);
-                if (nameOfPersonType == typeof(Client))
+                try
                 {
-                    using (var context = new UPSClientContext(pathToSave))
+                    if (nameOfPersonType == typeof(Client))
                     {
                         var newClient = new Client(nameOfPerson, passwordOrSecondName);
                         if (newClient.Name != null && newClient.Password != null)
@@ -115,27 +103,26 @@ namespace UlyanovProduseStore.BL.Controller
                             return newClient;
                         }
                     }
-                }
-                else if (nameOfPersonType == typeof(Employee))
-                {
-                    using (var context = new UPSEmployeeContext(pathToSave))
+                    else if (nameOfPersonType == typeof(Employee))
                     {
-                        var newEmployee = new Employee(nameOfPerson, passwordOrSecondName, position);
-                        if (newEmployee.Name != null && newEmployee.SecondName != null && newEmployee.Position != null)
+                        var newEmployee = new Employee(nameOfPerson, passwordOrSecondName);
+                        if (newEmployee.Name != null && newEmployee.SecondName != null)
                         {
                             context.Employees.Add(newEmployee);
                             context.SaveChanges();
                             return newEmployee;
                         }
                     }
+                    else
+                        return null;
                 }
-                throw new ArgumentException("Недопустимое значение Т!");
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                    return null;
+                }
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-                return null;
-            }
+            return null;
         }
 
         /// <summary>
@@ -145,13 +132,14 @@ namespace UlyanovProduseStore.BL.Controller
         /// <param name="money">Сумма пополнения. </param>
         /// <returns> Возвращает true, если client не равен null, money более нуля и пополнение было успешно совершено.
         ///           Иначе - возвращает false. </returns>
-        public static bool UpBalance(Client client, decimal money, string pathToSave)
+        public static bool UpBalance(Client client, decimal money, UPSContext context)
         {
             //Да, да, тут должна быть переадресация на платёжные системы и т.д.
             if (money > 0 && client != null)
             {
                 client.Balance += money;
-                SaveClient(client, pathToSave);
+
+                SaveClient(client, context);
                 return true;
             }
             else
@@ -162,20 +150,17 @@ namespace UlyanovProduseStore.BL.Controller
         }
 
         
-        private static void SaveClient(Client inputClient, string pathToSave)
+        private static void SaveClient(Client inputClient, UPSContext context)
         {
             try
             {
-                using (var context = new UPSClientContext(pathToSave))
-                {
-                    var outClient = context.Clients.FirstOrDefault(client => client.Id == inputClient.Id);
-                    outClient = inputClient;
-                    context.SaveChanges();
-                }
+                var clientFromDb = context.Clients.Find(inputClient.Id);
+                clientFromDb = inputClient;
+                context.SaveChanges();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                Console.WriteLine("Не удалось сохранить данные после операции!");
+                Console.WriteLine("Не удалось сохранить данные после операции!" + ex);
                 Thread.Sleep(5000);
             }
         }

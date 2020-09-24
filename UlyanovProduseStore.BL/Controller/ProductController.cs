@@ -10,82 +10,75 @@ namespace UlyanovProduseStore.BL.Controller
 {
     public static class ProductController
     {
-        public static List<Product> LoadProducts(string pathOfLoad)
+        public static List<Product> LoadProducts(UPSContext context)
         {
-            using (var context = new UPSEmployeeContext(pathOfLoad))
+            try
             {
-                try
+                if (context.Products.Count() > 0)
                 {
-                    if (context.Products.Count() > 0)
-                    {
-                        var products = context.Products.ToList();
-                        return products;
-                    }
-                    else
-                    {
-                        throw new Exception("Не удалось загрузить список продуктов. Был создан список по умолчанию.");
-                        //TODO: Проверить работоспособность. 
-                    }
+                    var products = context.Products.ToList();
+                    return products;
+                }
+                else
+                {
+                    throw new Exception("Не удалось загрузить список продуктов. Был создан список по умолчанию.");
+                    //TODO: Проверить работоспособность. 
+                }
 
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex.Message);
-                    var productsNull = new List<Product>();
-                    return productsNull;
-                }
+            }
+            catch (Exception)
+            {
+                var productsNull = new List<Product>();
+                return productsNull;
             }
         }
 
-        public static void AddProducts(string pathOfLoad)
+        public static void AddProducts(UPSContext context)
         {
-            List<Product> products = new List<Product>();
+            var products = new List<Product>();
+            products = context.Products.ToList();
 
-            using (var context = new UPSEmployeeContext(pathOfLoad))
+            while (true) //TODO: Убрать элементы интерфейса, все данные должны идти из аргументов.
             {
-                products = context.Products.ToList();   
+                Console.WriteLine(@"Ведите название и стоимость продукта.");
 
-                while (true)
+                Console.Write("Название: ");
+                string inputName = Console.ReadLine();
+
+                if (products.Any(x => x.Name == inputName))
                 {
-                    Console.WriteLine(@"Ведите название и стоимость продукта.");
-
-                    Console.Write("Название: ");
-                    string inputName = Console.ReadLine();
-
-                    if (products.Any(x => x.Name == inputName))
-                    {
-                        Console.WriteLine("Продукт с такими именем уже существует!");
-                        Thread.Sleep(5000);
-                        Console.Clear();
-                        continue;
-                    }
-
-                    Console.Write("Стоимость (в рублях): ");
-                    decimal.TryParse(Console.ReadLine(), out decimal cost);
-
-
-                    products.Add(new Product(inputName, cost));
-
-                    Console.WriteLine(@"Продукт добавлен, но изменения не сохранены.");
-                    Console.WriteLine(@"Если более не собираетесь их добавлять, введите ""stop"". В ином случае - введите что угодно или нажмите Enter.");
-
-                    if (Console.ReadLine() == "stop")
-                    {
-                        Console.Clear();
-                        break;
-                    }
+                    Console.WriteLine("Продукт с такими именем уже существует!");
+                    Thread.Sleep(5000);
+                    Console.Clear();
+                    continue;
                 }
 
-                context.SaveChanges();
-                Console.WriteLine("Добавление продуктов завершено, изменения сохранены.");
-                Thread.Sleep(5000);
+                Console.Write("Стоимость (в рублях): ");
+                decimal.TryParse(Console.ReadLine(), out decimal cost);
+
+
+                products.Add(new Product(inputName, cost));
+
+                Console.WriteLine(@"Продукт добавлен, но изменения не сохранены.");
+                Console.WriteLine(@"Если более не собираетесь их добавлять, введите ""stop"". В ином случае - введите что угодно или нажмите Enter.");
+
+                if (Console.ReadLine() == "stop")
+                {
+                    Console.Clear();
+                    break;
+                }
             }
+
+            context.SaveChanges();
+            Console.WriteLine("Добавление продуктов завершено, изменения сохранены.");
+            Thread.Sleep(5000);
+
         }
 
         #region GettersSetters
 
         /// <summary>
-        /// Возвращает поле Name продукта. 
+        /// Возвращает поле Name этого экземпляра Product. 
         /// </summary>
         /// <param name="product">Экземпляр Product из которого будет идти считывание.</param>
         /// <returns></returns>
@@ -95,7 +88,7 @@ namespace UlyanovProduseStore.BL.Controller
         }
 
         /// <summary>
-        /// Возвращает поле Cost продукта.
+        /// Возвращает поле Cost этого экземпляра Product.
         /// </summary>
         /// <param name="product">Экземпляр Product из которого будет идти считывание.</param>
         /// <returns></returns>
@@ -105,31 +98,34 @@ namespace UlyanovProduseStore.BL.Controller
         }
 
         /// <summary>
-        /// изменяет поле Name продукта. 
+        /// изменяет поле Name этого экземпляра Product. 
         /// </summary>
         /// <param name="newName">Новое имя экземпляра Product.</param>
         /// <param name="product">Экземпляр Product который будет изменён.</param>
-        public static void SetName(string newName, Product product)
+        public static string SetName(string newName, Product product)
         {
             if (string.IsNullOrWhiteSpace(newName))
             {
-                throw new ArgumentNullException(nameof(newName), "Название продукта не может быть пустым!");
+                return null;
             }
             product.Name = newName;
+            return product.Name;
         }
 
         /// <summary>
-        /// Изменяет поле Cost продукта.
+        /// Изменяет поле Cost этого экземпляра Product.
         /// </summary>
         /// <param name="newCost">Новое значение Cost для экземпляра Product.</param>
         /// <param name="product">Экземпляр Product который будет изменён.</param>
-        public static void SetCost(decimal newCost, Product product)
+        public static decimal SetCost(decimal newCost, Product product)
         {
             if (newCost <= 0)
             {
-                throw new ArgumentNullException(nameof(newCost), "Стоимость продукта не может быть ниже или равна нулю!");
+                return -1;
             }
             product.Cost = newCost;
+
+            return product.Cost;
         }
         #endregion
     }

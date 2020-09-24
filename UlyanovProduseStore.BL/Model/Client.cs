@@ -5,7 +5,11 @@ namespace UlyanovProduseStore.BL.Model
 {
     public class Client : Person
     {
-        public Client(string name, string password) : base(name)
+        public Client() : base("X", "X")
+        {
+        }
+
+        public Client(string name, string password) : base(name, password)
         {
             StringBuilder stringAboutExeption = new StringBuilder();
             #region Cheks
@@ -22,11 +26,10 @@ namespace UlyanovProduseStore.BL.Model
                 return;
             }
 
-            Password = password;
             Balance = 0;
         }
 
-        public Client(string name, string password, decimal balance) : base(name)
+        public Client(string name, string password, decimal balance) : base(name, password)
         {
             StringBuilder stringAboutExeption = new StringBuilder();
             #region Cheks
@@ -47,14 +50,14 @@ namespace UlyanovProduseStore.BL.Model
                 return;
             }
 
-            Password = password;
             Balance = balance;
         }
 
         #region params
+
         public int Id { get; set; }
-        public string Password { get; set; }
         public decimal Balance { get; set; }
+
         #endregion
     }
 }

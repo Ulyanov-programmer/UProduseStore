@@ -5,9 +5,13 @@ namespace UlyanovProduseStore.BL.Model
 {
     public class Product
     {
+        public Product()
+        {
+        }
+
         public Product(string name, decimal cost)
         {
-            StringBuilder messageAboutExeption = new StringBuilder();
+            var messageAboutExeption = new StringBuilder();
             #region Cheks
 
             if (string.IsNullOrWhiteSpace(name) || name.Contains("."))
@@ -30,11 +34,14 @@ namespace UlyanovProduseStore.BL.Model
             Cost = cost;
         }
 
-        #region Params
+        #region params
 
-        internal string Name { get; set; }
-        internal decimal Cost { get; set; }
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public decimal Cost { get; set; }
         #endregion
+
+        #region overrides
 
         /// <summary>
         /// Возвращает Name экземпляра Product.
@@ -42,7 +49,9 @@ namespace UlyanovProduseStore.BL.Model
         /// <returns></returns>
         public override string ToString()
         {
-            return Name.ToString();
+            return Name;
         }
+
+        #endregion
     }
 }

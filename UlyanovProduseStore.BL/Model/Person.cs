@@ -11,27 +11,26 @@ namespace UlyanovProduseStore.BL.Model
         /// Доступный только для наследников Person конструктор, в нём определяется значение общих полей.
         /// </summary>
         /// <param name="name">Имя наследника Person.</param>
-        protected Person(string name)
+        protected Person(string name, string password)
         {
-            if (string.IsNullOrWhiteSpace(name))
+            if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(password))
             {
-                Console.WriteLine("Имя не может быть пустым или состоять только из символов - разделителей!");
+                Console.WriteLine("Имя и/или пароль не могут быть пустыми или состоять только из символов - разделителей!");
                 return;
             }
 
+            Password = password;
             Name = name;
         }
 
         #region Params
 
-        /// <summary>
-        /// Путь к месту сохранения экземпляров, производных от Person.
-        /// </summary>
-        internal const string PathSaveOfPersons = @"F:\Projects\UlyanovProduseStore\UlyanovProduseStore.BL\bin\Debug\DataUsers";
-        //TODO: При допилке на базу данных - удалить нахрен этот костыль.
+        public string Name { get; set; }
+        public string Password { get; set; }
 
-        internal string Name { get; set; }
         #endregion
+
+        #region overrides
 
         /// <summary>
         /// Возвращает Name экземпляра производного от Person..
@@ -41,5 +40,7 @@ namespace UlyanovProduseStore.BL.Model
         {
             return Name;
         }
+
+        #endregion
     }
 }
