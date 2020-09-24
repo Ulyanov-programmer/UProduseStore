@@ -2,7 +2,7 @@
 
 namespace UlyanovProduseStore.BL.Model
 {
-    public class Employee : Person //TODO: После допилки под БД, дополнить описание.
+    public class Employee : Person
     {
         public Employee() : base("X", "X")
         {

@@ -3,6 +3,7 @@ using UlyanovProduseStore.BL.Controller;
 using UlyanovProduseStore.BL.Model;
 using System.Linq;
 using System.Threading;
+using UlyanovProduseStore.BL;
 
 namespace UlyanovProduseStore.VIEW
 {
@@ -108,17 +109,19 @@ namespace UlyanovProduseStore.VIEW
                         string inputNameOfProduct = Console.ReadLine();
 
                         var product = products.SingleOrDefault(prod => prod.Name == inputNameOfProduct);
-
                         if (product != default)
                         {
                             if (ClientController.AddProductInBasket(basket, product))
                             {
                                 Console.WriteLine($"Продукт с именем {product} добавлен в корзину!");
-                                Thread.Sleep(6000);
                             }
                         }
-                        Console.WriteLine("Продукта с таким именем не существует в продаже!");
+                        else
+                        {
+                            Console.WriteLine("Продукта с таким именем не существует в продаже!");
+                        }
                         Thread.Sleep(6000);
+
                         break;
 
                     #endregion
@@ -164,7 +167,7 @@ namespace UlyanovProduseStore.VIEW
                             //    Console.Write("Ваш баланс меньше чем общая стоимость корзины с учётом коэффициента скидки,");
                             //    Console.Write("ваш аккаунт повреждён или корзина пуста! \n");
                             //}
-                            Thread.Sleep(6000);
+                            //Thread.Sleep(6000);
                         }
                         break;
 

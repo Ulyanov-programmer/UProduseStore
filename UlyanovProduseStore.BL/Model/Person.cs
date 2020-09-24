@@ -11,15 +11,15 @@ namespace UlyanovProduseStore.BL.Model
         /// Доступный только для наследников Person конструктор, в нём определяется значение общих полей.
         /// </summary>
         /// <param name="name">Имя наследника Person.</param>
-        protected Person(string name, string password)
+        protected Person(string name, string passwordOrSecondName)
         {
-            if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(password))
+            if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(passwordOrSecondName))
             {
                 Console.WriteLine("Имя и/или пароль не могут быть пустыми или состоять только из символов - разделителей!");
                 return;
             }
 
-            Password = password;
+            Password = passwordOrSecondName;
             Name = name;
         }
 
