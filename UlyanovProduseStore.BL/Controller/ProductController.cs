@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using UlyanovProduseStore.BL.Model;
 using System.Linq;
-using System.Threading;
-using System.Runtime.Serialization.Formatters.Binary;
 
 namespace UlyanovProduseStore.BL.Controller
 {
@@ -22,7 +19,6 @@ namespace UlyanovProduseStore.BL.Controller
                 else
                 {
                     throw new Exception("Не удалось загрузить список продуктов. Был создан список по умолчанию.");
-                    //TODO: Проверить работоспособность. 
                 }
 
             }
@@ -33,46 +29,17 @@ namespace UlyanovProduseStore.BL.Controller
             }
         }
 
-        public static void AddProducts(UPSContext context)
+        public static bool AddProducts(UPSContext context, Product newProduct, List<Product> productsFromDb)
         {
-            var products = new List<Product>();
-            products = context.Products.ToList();
-
-            while (true) //TODO: Убрать элементы интерфейса, все данные должны идти из аргументов.
+            if (productsFromDb.Find(prod => prod.Name == newProduct.Name) is null &&
+                context != null &&
+                productsFromDb != null)
             {
-                Console.WriteLine(@"Ведите название и стоимость продукта.");
-
-                Console.Write("Название: ");
-                string inputName = Console.ReadLine();
-
-                if (products.Any(x => x.Name == inputName))
-                {
-                    Console.WriteLine("Продукт с такими именем уже существует!");
-                    Thread.Sleep(5000);
-                    Console.Clear();
-                    continue;
-                }
-
-                Console.Write("Стоимость (в рублях): ");
-                decimal.TryParse(Console.ReadLine(), out decimal cost);
-
-
-                products.Add(new Product(inputName, cost));
-
-                Console.WriteLine(@"Продукт добавлен, но изменения не сохранены.");
-                Console.WriteLine(@"Если более не собираетесь их добавлять, введите ""stop"". В ином случае - введите что угодно или нажмите Enter.");
-
-                if (Console.ReadLine() == "stop")
-                {
-                    Console.Clear();
-                    break;
-                }
+                context.Products.Add(newProduct);
+                context.SaveChanges();
+                return true;
             }
-
-            context.SaveChanges();
-            Console.WriteLine("Добавление продуктов завершено, изменения сохранены.");
-            Thread.Sleep(5000);
-
+            return false;
         }
 
         #region GettersSetters

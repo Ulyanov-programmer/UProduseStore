@@ -18,33 +18,27 @@ namespace UlyanovProduseStore.BL.Controller
             return false;
         }
 
-        //public static bool Buy(Client client)
-        //{
-        //    //TODO: Добавить проверку на наличие продуктов в файле/БД.
-        //    if (client != null && client.BasketOfproducts.Count > 0)
-        //    {
-        //        var SumCost = client.BasketOfproducts.Select(x => x.Cost)
-        //                                             .Sum();
+        public static bool Buy(Basket basket, UPSContext context)
+        {
+            if (basket != null &&
+                basket.Client != null &&
+                basket.Products != null &&
+                basket.Products.Count > 0)
+            {
+                var sumCost = basket.Products.Select(x => x.Cost)
+                                             .Sum();
 
-        //        SumCost = SumCost * (decimal)client.DiscountRate;
+                if (basket.Client.Balance >= sumCost)
+                {
+                    basket.Client.Balance -= sumCost;
 
-        //        if (client.Balance >= SumCost)
-        //        {
-        //            client.Balance -= SumCost;
-        //            client.DiscountRate -= (double)SumCost / 100000;
-        //            client.DiscountRate = Math.Round(client.DiscountRate, 2); //TODO: Некорректное округление, исправить.
-
-        //            if (client.DiscountRate < 0.90)
-        //            {
-        //                client.DiscountRate = 0.90;
-        //            }
-        //            client.BasketOfproducts = new List<Product>();
-        //            SaveClient(client);
-        //            return true;
-        //        }
-        //    }
-        //    return false;
-        //}
+                    basket.Products = new List<Product>();
+                    SaveClient(basket.Client, context);
+                    return true;
+                }
+            }
+            return false;
+        }
 
         public static Person LoadOfPerson<T>(string nameOfPerson, string passwordOrSecondName, UPSContext context) where T : Person
         {
@@ -165,20 +159,21 @@ namespace UlyanovProduseStore.BL.Controller
             }
         }
 
-        //public static bool DeleteProductFromBasket(Client client, string nameOfTheProductBeDeleted)
-        //{
-        //    if (client != null && client.BasketOfproducts.Count > 0 &&
-        //        client.BasketOfproducts.Find(x => x.Name == nameOfTheProductBeDeleted) != default)
-        //    {
-        //        client.BasketOfproducts.RemoveAt(client.BasketOfproducts.FindIndex(x => x.Name == nameOfTheProductBeDeleted));
+        public static bool DeleteProductFromBasket(Basket basket, string nameOfTheProductBeDeleted)
+        {
+            if (basket != null &&
+                basket.Client != null &&
+                basket.Products != null &&
+                basket.Products.Count > 0 &&
+                basket.Products.Any(prod => prod.Name == nameOfTheProductBeDeleted))
+            {
+                int index = basket.Products.FindIndex(prod => prod.Name == nameOfTheProductBeDeleted);
+                basket.Products.RemoveAt(index);
 
-        //        return true;
-        //    }
-        //    else
-        //    {
-        //        return false;
-        //    }
-        //}
+                return true;
+            }
+            return false;
+        }
 
         #region GettersSetters
 

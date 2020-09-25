@@ -23,10 +23,6 @@ namespace UlyanovProduseStore.BL.Model
             }
         }
 
-        public Basket()
-        {
-        }
-
         public Client Client { get; set; }
         public List<Product> Products = new List<Product>();
 
