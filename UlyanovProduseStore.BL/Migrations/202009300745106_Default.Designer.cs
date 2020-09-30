@@ -13,7 +13,7 @@ namespace UlyanovProduseStore.BL.Migrations
         
         string IMigrationMetadata.Id
         {
-            get { return "202009240807555_Default"; }
+            get { return "202009300745106_Default"; }
         }
         
         string IMigrationMetadata.Source

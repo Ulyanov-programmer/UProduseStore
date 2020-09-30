@@ -76,6 +76,12 @@
     <None Include="App.config" />
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\UlyanovProduseStore.BL\UlyanovProduseStore.BL.csproj">
+      <Project>{660f2061-7508-472d-aa87-594252d6e670}</Project>
+      <Name>UlyanovProduseStore.BL</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Choose>
     <When Condition="'$(VisualStudioVersion)' == '10.0' And '$(IsCodedUITest)' == 'True'">
       <ItemGroup>

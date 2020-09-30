@@ -10,35 +10,38 @@ namespace UlyanovProduseStore.BL.Model
         /// <summary>
         /// Доступный только для наследников Person конструктор, в нём определяется значение общих полей.
         /// </summary>
-        /// <param name="name">Имя наследника Person.</param>
+        /// <param name="name"> Имя наследника Person. </param>
+        /// <param name="passwordOrSecondName"> Пароль или фамилия наследника Person. </param>
         protected Person(string name, string passwordOrSecondName)
         {
-            if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(passwordOrSecondName))
+            if (string.IsNullOrWhiteSpace(name) is false &&
+                string.IsNullOrWhiteSpace(passwordOrSecondName) is false)
             {
-                Console.WriteLine("Имя и/или пароль не могут быть пустыми или состоять только из символов - разделителей!");
-                return;
+                PasswordOrSecondName = passwordOrSecondName;
+                Name = name;
             }
-
-            Password = passwordOrSecondName;
-            Name = name;
         }
 
         #region Params
 
         public string Name { get; set; }
-        public string Password { get; set; }
+        public string PasswordOrSecondName { get; set; }
 
         #endregion
 
         #region overrides
 
         /// <summary>
-        /// Возвращает Name экземпляра производного от Person..
+        /// 
         /// </summary>
-        /// <returns></returns>
+        /// <returns> Значение Name экземпляра, производного от Person, если оно не пусто. Иначе - null. </returns>
         public override string ToString()
         {
-            return Name;
+            if (string.IsNullOrWhiteSpace(Name) is false)
+            {
+                return Name;
+            }
+            return null;
         }
 
         #endregion

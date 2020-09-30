@@ -6,8 +6,17 @@ using UlyanovProduseStore.BL.Model;
 
 namespace UlyanovProduseStore.BL.Controller
 {
+    /// <summary>
+    /// Класс-контроллер, содержащий методы для работы с экземплярами Client и Basket.
+    /// </summary>
     public class ClientController
     {
+        /// <summary>
+        /// Добавляет экземпляр Product в объект Basket.
+        /// </summary>
+        /// <param name="basket"> Объект Basket, в который будет произведено добавление. </param>
+        /// <param name="product"> Экземпляр Product, который будет добавлен.</param>
+        /// <returns> True - если входные аргументы корректны и операция удалась, иначе - false. </returns>
         public static bool AddProductInBasket(Basket basket, Product product)
         {
             if (product != null && basket != null)
@@ -18,6 +27,13 @@ namespace UlyanovProduseStore.BL.Controller
             return false;
         }
 
+        /// <summary>
+        /// Выполняет операцию покупки, удаляя из экземпляра Basket все объекты Product
+        /// и вычитает их сумму их баланса объекта Client, который содержится в Basket.
+        /// </summary>
+        /// <param name="basket"> Объект Basket. </param>
+        /// <param name="context"> Экземпляр контекста, необходимый для сохранения изменений в базе данных. </param>
+        /// <returns> True - если входные аргументы корректны и операция удалась, иначе - false.  </returns>
         public static bool Buy(Basket basket, UPSContext context)
         {
             if (basket != null &&
@@ -40,6 +56,16 @@ namespace UlyanovProduseStore.BL.Controller
             return false;
         }
 
+        /// <summary>
+        /// Загружает объект, наследника Person, из БД.
+        /// </summary>
+        /// <typeparam name="T"> Тип выгружаемого объекта. Должен наследоваться от Person. </typeparam>
+        /// <param name="nameOfPerson"> Имя выгружаемого объекта. </param>
+        /// <param name="passwordOrSecondName"> Пароль или фамилия выгружаемого объекта. </param>
+        /// <param name="context"> Экземпляр контекста, необходимый для работы с БД. </param>
+        /// <returns> Если входные аргументы корректны и операция удалась - возвращает загруженный объект, 
+        ///           иначе - null.
+        /// </returns>
         public static Person LoadOfPerson<T>(string nameOfPerson, string passwordOrSecondName, UPSContext context) where T : Person
         {
             if (string.IsNullOrWhiteSpace(nameOfPerson) == false &&
@@ -52,7 +78,7 @@ namespace UlyanovProduseStore.BL.Controller
                     if (nameOfType == typeof(Client))
                     {
                         var clientFromDb = context.Clients.FirstOrDefault(clint => clint.Name == nameOfPerson &&
-                                                                                   clint.Password == passwordOrSecondName);
+                                                                                   clint.PasswordOrSecondName == passwordOrSecondName);
                         if (clientFromDb != default)
                         {
                             return clientFromDb;
@@ -60,8 +86,8 @@ namespace UlyanovProduseStore.BL.Controller
                     }
                     else if (nameOfType == typeof(Employee))
                     {
-                        var employeeFromDb = context.Clients.FirstOrDefault(emp => emp.Name == nameOfPerson &&
-                                                                                   emp.Password == passwordOrSecondName);
+                        var employeeFromDb = context.Employees.FirstOrDefault(emp => emp.Name == nameOfPerson &&
+                                                                                   emp.PasswordOrSecondName == passwordOrSecondName);
                         if (employeeFromDb != default)
                         {
                             return employeeFromDb;
@@ -79,6 +105,16 @@ namespace UlyanovProduseStore.BL.Controller
             return null;
         }
 
+        /// <summary>
+        /// Добавляет в БД объект, наследника от Person.
+        /// </summary>
+        /// <typeparam name="T"> Тип выгружаемого объекта. Должен наследоваться от Person. </typeparam>
+        /// <param name="nameOfPerson"> Имя выгружаемого объекта.  </param>
+        /// <param name="passwordOrSecondName"> Пароль или фамилия выгружаемого объекта. </param>
+        /// <param name="context"> Экземпляр контекста, необходимый для работы с БД. </param>
+        /// <returns> Если входные аргументы корректны и операция удалась - возвращает загруженный объект, 
+        ///           иначе - null.
+        /// </returns>
         public static Person RegistrationOfPerson<T>(string nameOfPerson, string passwordOrSecondName, UPSContext context)
         {
             if (string.IsNullOrWhiteSpace(nameOfPerson) is false &&
@@ -89,22 +125,32 @@ namespace UlyanovProduseStore.BL.Controller
                 {
                     if (nameOfPersonType == typeof(Client))
                     {
-                        var newClient = new Client(nameOfPerson, passwordOrSecondName);
-                        if (newClient.Name != null && newClient.Password != null)
+                        if (context.Clients.FirstOrDefault(clint => clint.Name == nameOfPerson) == default)
                         {
-                            context.Clients.Add(newClient);
-                            context.SaveChanges();
-                            return newClient;
+                            var newClient = new Client(nameOfPerson, passwordOrSecondName);
+
+                            if (newClient.Name != null &&
+                                newClient.PasswordOrSecondName != null)
+                            {
+                                context.Clients.Add(newClient);
+                                context.SaveChanges();
+                                return newClient;
+                            }
                         }
                     }
                     else if (nameOfPersonType == typeof(Employee))
                     {
-                        var newEmployee = new Employee(nameOfPerson, passwordOrSecondName);
-                        if (newEmployee.Name != null && newEmployee.SecondName != null)
+                        if (context.Employees.FirstOrDefault(clint => clint.Name == nameOfPerson) == default)
                         {
-                            context.Employees.Add(newEmployee);
-                            context.SaveChanges();
-                            return newEmployee;
+                            var newEmployee = new Employee(nameOfPerson, passwordOrSecondName);
+
+                            if (newEmployee.Name != null &&
+                                newEmployee.PasswordOrSecondName != null)
+                            {
+                                context.Employees.Add(newEmployee);
+                                context.SaveChanges();
+                                return newEmployee;
+                            }
                         }
                     }
                     else
@@ -120,13 +166,13 @@ namespace UlyanovProduseStore.BL.Controller
         }
 
         /// <summary>
-        /// Увеличивает баланс экземпляра класса Client и сохраняет изменения клиента.
+        /// Увеличивает баланс экземпляра Client и сохраняет изменения.
         /// </summary>
-        /// <param name="client">Экземпляр класса Client, для которого будет произведено пополнение. </param>
-        /// <param name="money">Сумма пополнения. </param>
-        /// <returns> Возвращает true, если client не равен null, money более нуля и пополнение было успешно совершено.
-        ///           Иначе - возвращает false. </returns>
-        public static bool UpBalance(Client client, decimal money, UPSContext context)
+        /// <param name="client"> Экземпляр Client, для которого будет произведено пополнение. </param>
+        /// <param name="money"> Сумма пополнения. </param>
+        /// <returns> Если входные аргументы корректны и операция удалась, возвращает текущий баланс входного Client.
+        ///           Иначе возвращает -1. </returns>
+        public static decimal UpBalance(Client client, decimal money, UPSContext context)
         {
             //Да, да, тут должна быть переадресация на платёжные системы и т.д.
             if (money > 0 && client != null)
@@ -134,16 +180,20 @@ namespace UlyanovProduseStore.BL.Controller
                 client.Balance += money;
 
                 SaveClient(client, context);
-                return true;
+                return client.Balance;
             }
             else
             {
                 Console.WriteLine("Сумма пополнения менее или равна нулю или аккаунт повреждён!");
-                return false;
+                return -1;
             }
         }
 
-        
+        /// <summary>
+        /// Приватный метод, необходимый для сохранения (синхронизации) данных об экземпляре Client после операций.
+        /// </summary>
+        /// <param name="inputClient"> Экземпляр Client, данные которого будут синхронизированы с БД. </param>
+        /// <param name="context"> Экземпляр контекста, необходимый для работы с БД. </param>
         private static void SaveClient(Client inputClient, UPSContext context)
         {
             try
@@ -159,6 +209,12 @@ namespace UlyanovProduseStore.BL.Controller
             }
         }
 
+        /// <summary>
+        /// Удаляет экземпляр Product из входного объекта Basket. Внимание, будет удалено первое вхождение этого экземпляра Product.
+        /// </summary>
+        /// <param name="basket"> Объект Basket, из которого будет произведено удаление. </param>
+        /// <param name="nameOfTheProductBeDeleted"> Имя экземпляра Product, первое вхождение которого будет удалено. </param>
+        /// <returns> True - если входные аргументы корректны и операция удалась, иначе - false. </returns>
         public static bool DeleteProductFromBasket(Basket basket, string nameOfTheProductBeDeleted)
         {
             if (basket != null &&
@@ -194,15 +250,16 @@ namespace UlyanovProduseStore.BL.Controller
         /// <returns>Если клиент пуст или его поле "Password" пусто, возвращает null. Иначе - содержимое поля Password.</returns>
         public static string GetPassword(Client client)
         {
-            if (client != null || client.Password != null)
+            if (client != null || client.PasswordOrSecondName != null)
             {
-                return client.Password;
+                return client.PasswordOrSecondName;
             }
             else
             {
                 return null;
             }
         }
+
         #endregion
     }
 }

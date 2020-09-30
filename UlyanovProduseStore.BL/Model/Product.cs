@@ -1,37 +1,28 @@
 ﻿using System;
-using System.Text;
 
 namespace UlyanovProduseStore.BL.Model
 {
+    /// <summary>
+    /// Класс, содержащий информацию о продукте, такую как его стоимость, название и т.п .
+    /// </summary>
     public class Product
     {
-        public Product()
-        {
-        }
+        public Product() { }
 
+        /// <summary>
+        /// Создаёт новый экземпляр Product.
+        /// </summary>
+        /// <param name="name"> Имя нового экземпляра Product. </param>
+        /// <param name="cost"> Стоимость нового экземпляра Product. </param>
         public Product(string name, decimal cost)
         {
-            var messageAboutExeption = new StringBuilder();
-            #region Cheks
-
-            if (string.IsNullOrWhiteSpace(name) || name.Contains("."))
+            if (string.IsNullOrWhiteSpace(name) is false &&
+                name.Contains(".") is false &&
+                cost > 0)
             {
-                messageAboutExeption.AppendLine("Имя не может быть пустым или содержать точки!");
+                Name = name;
+                Cost = cost;
             }
-            if (cost <= 0)
-            {
-                messageAboutExeption.AppendLine("Стоимость продукта не может быть ниже или равна нулю!");
-            }
-            #endregion
-
-            if (messageAboutExeption.Length > 0)
-            {
-                Console.WriteLine(messageAboutExeption);
-                return;   
-            }
-            
-            Name = name;
-            Cost = cost;
         }
 
         #region params
@@ -39,17 +30,22 @@ namespace UlyanovProduseStore.BL.Model
         public int Id { get; set; }
         public string Name { get; set; }
         public decimal Cost { get; set; }
+
         #endregion
 
         #region overrides
 
         /// <summary>
-        /// Возвращает Name экземпляра Product.
+        /// 
         /// </summary>
-        /// <returns></returns>
+        /// <returns> Значение Name экземпляра Product, если оно не пусто. Иначе - null. </returns>
         public override string ToString()
         {
-            return Name;
+            if (string.IsNullOrWhiteSpace(Name) is false)
+            {
+                return Name;
+            }
+            return null;
         }
 
         #endregion

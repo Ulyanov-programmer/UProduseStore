@@ -14,7 +14,7 @@
                         Id = c.Int(nullable: false, identity: true),
                         Balance = c.Decimal(nullable: false, precision: 18, scale: 2),
                         Name = c.String(),
-                        Password = c.String(),
+                        PasswordOrSecondName = c.String(),
                     })
                 .PrimaryKey(t => t.Id);
             
@@ -23,10 +23,9 @@
                 c => new
                     {
                         Id = c.Int(nullable: false, identity: true),
-                        SecondName = c.String(),
                         Salary = c.Decimal(nullable: false, precision: 18, scale: 2),
                         Name = c.String(),
-                        Password = c.String(),
+                        PasswordOrSecondName = c.String(),
                     })
                 .PrimaryKey(t => t.Id);
             

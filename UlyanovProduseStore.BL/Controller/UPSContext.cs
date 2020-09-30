@@ -18,14 +18,20 @@ namespace UlyanovProduseStore.BL.Model
         public DbSet<Product> Products { get; set; }
         public DbSet<Client> Clients { get; set; }
 
+        #region const
+
         /// <summary>
         /// Константа строки подключения к базовому серверу.
         /// </summary>
         public const string StringConnectToMainServer = "MainDataBase";
 
-        /// <summary>
-        /// Константа строки подключения к тестовому серверу.
-        /// </summary>
-        public const string StringConnectToTestServer = "TestDataBase";
+
+        //TODO: Не работает возможность создания тестовой базы данных.
+        ///// <summary>
+        ///// Константа строки подключения к тестовому серверу.
+        ///// </summary>
+        //public const string StringConnectToTestServer = "UPSTestDataBase";
+
+        #endregion
     }
 }

@@ -3,6 +3,7 @@ using UlyanovProduseStore.BL.Controller;
 using System;
 using System.Collections.Generic;
 using UlyanovProduseStore.BL.Model;
+using System.Linq;
 
 namespace UlyanovProduseStore.BL.Controller.Tests
 {
@@ -13,59 +14,78 @@ namespace UlyanovProduseStore.BL.Controller.Tests
         public void SetNameTest()
         {
             //Arrange
-            Product product = new Product("X", 10, 1);
+            var context = new UPSContext(UPSContext.StringConnectToMainServer);
+
+            string oldNameOfProduct = "OldNameTest";
+            string newNameOfProduct = "NewNameTest";
+
+            var product = new Product(oldNameOfProduct, 10);
+
+            if (ProductController.AddProducts(context, product, context.Products.ToList()) is false)
+            {
+                Assert.Fail("Изменяемый продукт не был добавлен в БД!");
+            }
 
             //Act
-            ProductController.SetName("NewNameOfProduct", product);
+            string newNameOfThisProduct = ProductController.SetName(newNameOfProduct, product, context);
+            string nullNameOfThisProduct = ProductController.SetName(null, product, context);
 
             //Assert
-            Assert.AreEqual("NewNameOfProduct", ProductController.GetName(product));
-
+            Assert.AreEqual(newNameOfProduct, newNameOfThisProduct);
+            Assert.IsNull(nullNameOfThisProduct);
         }
 
         [TestMethod()]
         public void SetCostTest()
         {
             //Arrange
-            Product product = new Product("X", 10, 1);
+            decimal oldCost = 10;
+            decimal newCost = 15;
+
+            var context = new UPSContext(UPSContext.StringConnectToMainServer);
+            var product = new Product(Guid.NewGuid().ToString(), oldCost);
+
+            if (ProductController.AddProducts(context, product, context.Products.ToList()) is false)
+            {
+                Assert.Fail("Изменяемый продукт не был добавлен в БД!");
+            }
 
             //Act
-            ProductController.SetCost(500, product);
+            decimal newCostOfThisProduct = ProductController.SetCost(newCost, product, context);
 
             //Assert
-            Assert.AreEqual(500, ProductController.GetCost(product));
+            Assert.AreEqual(newCost, newCostOfThisProduct);
 
         }
 
-        [TestMethod()]
-        public void ShowProductsTest()
-        {
-            //Arrange
+        //[TestMethod()]
+        //public void ShowProductsTest()
+        //{
+        //    //Arrange
 
-            //Act
+        //    //Act
 
-            //Assert
-        }
+        //    //Assert
+        //}
 
-        [TestMethod()]
-        public void AddProductsTest()
-        {
-            //Arrange
+        //[TestMethod()]
+        //public void AddProductsTest()
+        //{
+        //    //Arrange
 
-            //Act
+        //    //Act
 
-            //Assert
-        }
+        //    //Assert
+        //}
 
-        [TestMethod()]
-        public void LoadProductsTest()
-        {
-            //TODO: Допилить при добавлении работы с БД, вероятно понадобится создание отдельной таблицы в БД для тестирования. 
-            //Arrange
+        //[TestMethod()]
+        //public void LoadProductsTest()
+        //{
+        //    //Arrange
             
-            //Act
+        //    //Act
 
-            //Assert
-        }
+        //    //Assert
+        //}
     }
 }

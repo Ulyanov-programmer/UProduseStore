@@ -44,8 +44,8 @@ namespace UlyanovProduseStore.VIEW
                             basket.Client = сlient;
                             Console.WriteLine($"Добро пожаловать, {сlient}!");
                         }
-                        Thread.Sleep(6000);
 
+                        Thread.Sleep(6000);
                         break;
 
                     #endregion
@@ -69,6 +69,7 @@ namespace UlyanovProduseStore.VIEW
                         }
                         basket.Client = сlient;
 
+                        Thread.Sleep(6000);
                         break;
 
                      #endregion
@@ -84,6 +85,7 @@ namespace UlyanovProduseStore.VIEW
             while (true)
             {
                 Console.Clear();
+
                 if (products.Count > 0)
                 {
                     Console.WriteLine("Нам доступны следующие продукты:");
@@ -96,7 +98,7 @@ namespace UlyanovProduseStore.VIEW
                     Console.WriteLine("Если ваша корзина уже заполнена, нажмите Y, что бы совершить покупку.");
                     Console.WriteLine("Если хотите удалить продукт из корзины, нажмите D, после чего вы введёте его имя.");
                 }
-                Console.WriteLine("Нажмите Q, если хотите пополнить счёт.");
+                Console.WriteLine("\nНажмите Q, если хотите пополнить счёт.");
                 Console.WriteLine("(раскладка не учитывается)");
 
                 switch (Console.ReadKey(true).Key)
@@ -184,7 +186,7 @@ namespace UlyanovProduseStore.VIEW
                             Thread.Sleep(3000);
                             continue;
                         }
-                        if (ClientController.UpBalance(сlient, input, context))
+                        if (ClientController.UpBalance(сlient, input, context) != -1)
                         {
                             Console.WriteLine($"Ваш баланс пополнен на {input} рублей и теперь составляет {ClientController.GetBalance(сlient)} рублей.");
                             Thread.Sleep(6000);
