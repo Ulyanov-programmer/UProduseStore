@@ -1,15 +1,14 @@
 ﻿using System;
-using UlyanovProduseStore.BL.Controller;
-using UlyanovProduseStore.BL.Model;
 using System.Linq;
 using System.Threading;
-using UlyanovProduseStore.BL;
+using UlyanovProduseStore.BL.Controller;
+using UlyanovProduseStore.BL.Model;
 
 namespace UlyanovProduseStore.VIEW
 {
-    class Program
+    internal class Program
     {
-        static void Main()
+        private static void Main()
         {
             UPSContext context = new UPSContext(UPSContext.StringConnectToMainServer);
             Client сlient = default;
@@ -72,7 +71,7 @@ namespace UlyanovProduseStore.VIEW
                         Thread.Sleep(6000);
                         break;
 
-                     #endregion
+                        #endregion
                 }
                 break;
             }

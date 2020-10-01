@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace UlyanovProduseStore.BL.Model
+﻿namespace UlyanovProduseStore.BL.Model
 {
     /// <summary>
     /// Класс, содержащий информацию о продукте, такую как его стоимость, название и т.п .
@@ -46,6 +44,21 @@ namespace UlyanovProduseStore.BL.Model
                 return Name;
             }
             return null;
+        }
+
+        /// <summary>
+        /// Сравнивает два объекта Product.
+        /// </summary>
+        /// <param name="otherProduct"> Другой объект Product. </param>
+        /// <returns> True - если сравниваемые объекты равны по определённым в методе параметрам, иначе - false. </returns>
+        public bool Equals(Product otherProduct)
+        {
+            if (otherProduct.Name == Name &&
+                otherProduct.Cost == Cost)
+            {
+                return true;
+            }
+            return false;   
         }
 
         #endregion

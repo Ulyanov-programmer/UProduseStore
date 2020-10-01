@@ -6,9 +6,9 @@ using UlyanovProduseStore.BL.Model;
 
 namespace UlyanovProduseStore.WarehouseTerminal
 {
-    class Program
+    internal class Program
     {
-        static void Main()
+        private static void Main()
         {
             #region preliminaryData
 

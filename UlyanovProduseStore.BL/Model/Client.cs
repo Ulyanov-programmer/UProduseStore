@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace UlyanovProduseStore.BL.Model
+﻿namespace UlyanovProduseStore.BL.Model
 {
     /// <summary>
     /// Содержит данные о клиенте, такие как его баланс, имя и т.п .
@@ -37,6 +35,25 @@ namespace UlyanovProduseStore.BL.Model
 
         public int Id { get; set; }
         public decimal Balance { get; set; }
+
+        #endregion
+
+        #region overrides
+
+        /// <summary>
+        /// Сравнивает два экземпляра Client.
+        /// </summary>
+        /// <param name="otherClient"> Другой экземпляр Client. </param>
+        /// <returns> True если сравниваемые объекты равны по определённым параметрам, иначе - false. </returns>
+        public bool Equals(Client otherClient)
+        {
+            if (otherClient.Name == Name &&
+                otherClient.PasswordOrSecondName == PasswordOrSecondName)
+            {
+                return true;
+            }
+            return false;
+        }
 
         #endregion
     }

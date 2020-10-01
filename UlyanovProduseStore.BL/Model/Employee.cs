@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace UlyanovProduseStore.BL.Model
+﻿namespace UlyanovProduseStore.BL.Model
 {
     /// <summary>
     /// Класс сотрудника, содержащий информацию о нём, такую как имя, фамилию и т.п .

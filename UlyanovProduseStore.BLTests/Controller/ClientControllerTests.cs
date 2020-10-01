@@ -10,7 +10,7 @@ namespace UlyanovProduseStore.BL.Controller.Tests
     public class ClientControllerTests
     {
         [TestMethod()]
-        public void LoadClientTest()
+        public void LoadPersonTest()
         {
             //Arrange
             var context = new UPSContext(UPSContext.StringConnectToMainServer);
@@ -22,25 +22,26 @@ namespace UlyanovProduseStore.BL.Controller.Tests
 
             //Act
             //Сохранение новых пользователей.
-            Client currentClient = ClientController.RegistrationOfPerson<Client>(nameOfClient, passwordOrID, context) as Client;
+            Client newClient = ClientController.RegistrationOfPerson<Client>(nameOfClient, passwordOrID, context) as Client;
             Employee newEmployee = ClientController.RegistrationOfPerson<Employee>(nameOfEmp, passwordOrID, context) as Employee;
 
             //Изменение и сохранение данных текущего клиента.
-            ClientController.UpBalance(currentClient, 500, context);
+            ClientController.UpBalance(newClient, 500, context);
 
-            //Загрузка данных сохранённого клиента. 
+            //Загрузка данных сохранённого клиента (изменения должны быть применены). 
             Client loadedClient = ClientController.LoadOfPerson<Client>(nameOfClient, passwordOrID, context) as Client;
-
-            Client loadedClientWithWrongPassword = ClientController.LoadOfPerson<Client>(nameOfClient, wrongPassword, context) as Client;
             Employee loadedEmployee = ClientController.LoadOfPerson<Employee>(nameOfEmp, passwordOrID, context) as Employee;
 
+            Client loadedClientWrongPassword = ClientController.LoadOfPerson<Client>(nameOfClient, wrongPassword, context) as Client;
+            Employee loadedEmployeeWrongSecName = ClientController.LoadOfPerson<Client>(nameOfClient, wrongPassword, context) as Employee;
+
             //Assert
-            //Сравнение данных текущего клиента и клиента загружаемого. Должны быть равны т.к данные загружаемого были созданы на основе текущего.
-            Assert.AreEqual(ClientController.GetBalance(currentClient), ClientController.GetBalance(loadedClient));
-            Assert.IsNull(loadedClientWithWrongPassword);
-            Assert.AreEqual(loadedClient.ToString(), loadedClient.ToString());
+            Assert.IsTrue(newClient.Equals(loadedClient));
 
             Assert.AreEqual(newEmployee.ToString(), loadedEmployee.ToString());
+
+            Assert.IsNull(loadedClientWrongPassword);
+            Assert.IsNull(loadedEmployeeWrongSecName);
         }
 
         [TestMethod()]
@@ -55,20 +56,18 @@ namespace UlyanovProduseStore.BL.Controller.Tests
             {
                 basket.Products.Add(new Product("product" + index, 10));
             }
-
             var sumCost = basket.Products.Sum(prod => prod.Cost);
-            decimal balanceBeforeBuy = ClientController.GetBalance(client);
 
-
-            Basket basketNull = null;
+            decimal balanceBeforeBuy = client.Balance;
 
             //Act
             bool isBuyComplete = ClientController.Buy(basket, context);
-            bool isBuyCompleteNull = ClientController.Buy(basketNull, context);
+            bool isBuyCompleteNull = ClientController.Buy(null, context);
 
             //Assert
             Assert.IsTrue(isBuyComplete);
-            Assert.AreEqual(balanceBeforeBuy - sumCost, ClientController.GetBalance(client));
+            Assert.AreEqual(balanceBeforeBuy - sumCost, client.Balance);
+
             Assert.IsFalse(isBuyCompleteNull);
         }
 
@@ -80,15 +79,16 @@ namespace UlyanovProduseStore.BL.Controller.Tests
             var context = new UPSContext(UPSContext.StringConnectToMainServer);
             var client = new Client("NewClient", "TEST");
             decimal clientBalanceBeforeUp = client.Balance;
-            Client clientNull = null;
 
             //Act
             decimal uppedBalance = ClientController.UpBalance(client, sum, context);
-            decimal uppedBalanceNullClient = ClientController.UpBalance(clientNull, sum, context);
+
+            decimal uppedBalanceNullClient = ClientController.UpBalance(null, sum, context);
             decimal uppedBalanceMinusBalance = ClientController.UpBalance(client, -100500, context);
 
             //Assert
             Assert.AreEqual(clientBalanceBeforeUp + sum, uppedBalance);
+
             Assert.IsTrue(uppedBalanceNullClient == -1);
             Assert.IsTrue(uppedBalanceMinusBalance == -1);
         }

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using UlyanovProduseStore.BL.Model;
 using System.Linq;
+using UlyanovProduseStore.BL.Model;
 
 namespace UlyanovProduseStore.BL.Controller
 {
@@ -45,21 +45,32 @@ namespace UlyanovProduseStore.BL.Controller
         /// <param name="context"> Экземпляр контекста, необходимый для сохранения изменений в базе данных. </param>
         /// <param name="newProduct"> Добавляемый экземпляр Product. </param>
         /// <param name="productsFromDb"> Данные о экземплярах Product из БД,
-        ///                               необходимые для защиты от ошибок (добавление уже существующего экземпляра и т.п). </param>
-        /// <returns> True - если входные аргументы корректны и операция удалась, иначе - false. </returns>
+        ///                               необходимые для защиты от ошибок (добавление уже существующего экземпляра и т.п).
+        /// </param>
+        /// <returns> True - если входные аргументы корректны, операция удалась и этот продукт не содержался в БД, иначе - false. </returns>
         public static bool AddProducts(UPSContext context, Product newProduct, List<Product> productsFromDb)
         {
             if (productsFromDb.Find(prod => prod.Name == newProduct.Name) is null &&
                 context != null &&
                 productsFromDb != null)
             {
-                context.Products.Add(newProduct);
-                context.SaveChanges();
-                return true;
+                if (string.IsNullOrWhiteSpace(newProduct.Name) is false &&
+                    newProduct.Cost > 0)
+                {
+                    context.Products.Add(newProduct);
+                    context.SaveChanges();
+                    return true;
+                }
             }
             return false;
         }
 
+        /// <summary>
+        /// Приватный метод, необходимый для сохранения (синхронизации) изменений экземпляра Product с ним же в базе данных.
+        /// </summary>
+        /// <param name="product"> Изменяемый экземпляр Product. </param>
+        /// <param name="context"> Экземпляр контекста, необходимый для сохранения изменений в базе данных. </param>
+        /// <returns> True - если входные аргументы корректны и операция удалась, иначе - false. </returns>
         private static bool SaveProduct(Product product, UPSContext context)
         {
             try
@@ -88,7 +99,7 @@ namespace UlyanovProduseStore.BL.Controller
         #region GettersSetters
 
         /// <summary>
-        /// Возвращает поле Name этого экземпляра Product. 
+        /// Возвращает поле Name экземпляра Product. 
         /// </summary>
         /// <param name="product">Экземпляр Product из которого будет идти считывание.</param>
         /// <returns></returns>
@@ -98,7 +109,7 @@ namespace UlyanovProduseStore.BL.Controller
         }
 
         /// <summary>
-        /// Возвращает поле Cost этого экземпляра Product.
+        /// Возвращает поле Cost экземпляра Product.
         /// </summary>
         /// <param name="product">Экземпляр Product из которого будет идти считывание.</param>
         /// <returns></returns>
@@ -108,15 +119,19 @@ namespace UlyanovProduseStore.BL.Controller
         }
 
         /// <summary>
-        /// Изменяет поле Name этого экземпляра Product. 
+        /// Изменяет поле Name экземпляра Product. 
         /// </summary>
         /// <param name="newName">Новое имя экземпляра Product.</param>
         /// <param name="product">Экземпляр Product который будет изменён.</param>
+        /// <returns> Текущее имя этого экземпляра Product, если операция была успешно совершена, иначе - null. </returns>
         public static string SetName(string newName, Product product, UPSContext context)
         {
-            if (string.IsNullOrWhiteSpace(newName) is false && context != null)
+            if (string.IsNullOrWhiteSpace(newName) is false &&
+                context != null &&
+                product != null)
             {
                 product.Name = newName;
+
                 if (SaveProduct(product, context))
                 {
                     return product.Name;
@@ -126,13 +141,15 @@ namespace UlyanovProduseStore.BL.Controller
         }
 
         /// <summary>
-        /// Изменяет поле Cost этого экземпляра Product.
+        /// Изменяет поле Cost экземпляра Product.
         /// </summary>
-        /// <param name="newCost">Новое значение Cost для экземпляра Product.</param>
-        /// <param name="product">Экземпляр Product который будет изменён.</param>
+        /// <param name="newCost"> Новое значение Cost для экземпляра Product. </param>
+        /// <param name="product"> Экземпляр Product который будет изменён. </param>
         public static decimal SetCost(decimal newCost, Product product, UPSContext context)
         {
-            if (newCost > 0 && context != null)
+            if (newCost > 0 &&
+                context != null &&
+                product != null)
             {
                 product.Cost = newCost;
                 if (SaveProduct(product, context))
@@ -142,6 +159,7 @@ namespace UlyanovProduseStore.BL.Controller
             }
             return -1;
         }
+
         #endregion
     }
 }

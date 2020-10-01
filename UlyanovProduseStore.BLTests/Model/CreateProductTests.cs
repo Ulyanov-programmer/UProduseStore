@@ -1,6 +1,4 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using UlyanovProduseStore.BL.Controller;
 
 namespace UlyanovProduseStore.BL.Model.Tests
 {

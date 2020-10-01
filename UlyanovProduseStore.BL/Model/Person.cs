@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace UlyanovProduseStore.BL.Model
+﻿namespace UlyanovProduseStore.BL.Model
 {
     /// <summary>
     /// Абстрактный класс для предотвращения дублирования кода у его наследников.

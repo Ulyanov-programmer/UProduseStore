@@ -1,6 +1,5 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
-using System.Collections.Generic;
 using UlyanovProduseStore.BL.Controller;
 
 namespace UlyanovProduseStore.BL.Model.Tests
@@ -38,7 +37,7 @@ namespace UlyanovProduseStore.BL.Model.Tests
             //Assert.IsNotNull(ClientController.GetDiscountRate(client));
             //Assert.IsNotNull(ClientController.GetListOfProduct(client));
 
-            
+
             Assert.AreEqual(nameForFull, nameForFull.ToString());
             //Assert.AreEqual(passwordForFull, ClientController.GetPassword(fullClient));
             //Assert.IsNotNull(ClientController.GetBalance(fullClient));
