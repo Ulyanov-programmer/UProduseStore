@@ -83,10 +83,12 @@ namespace UlyanovProduseStore.VIEW
 
             while (true)
             {
+                bool productsIsAvailable = false;
                 Console.Clear();
 
                 if (products.Count > 0)
                 {
+                    productsIsAvailable = true;
                     Console.WriteLine("Нам доступны следующие продукты:");
                     foreach (var product in products)
                     {
@@ -105,23 +107,25 @@ namespace UlyanovProduseStore.VIEW
                     #region key A (adding product)
 
                     case ConsoleKey.A:
-                        Console.WriteLine("Введите полное название продукта.");
-                        string inputNameOfProduct = Console.ReadLine();
-
-                        var product = products.SingleOrDefault(prod => prod.Name == inputNameOfProduct);
-                        if (product != default)
+                        if (productsIsAvailable)
                         {
-                            if (ClientController.AddProductInBasket(basket, product))
+                            Console.WriteLine("Введите полное название продукта.");
+                            string inputNameOfProduct = Console.ReadLine();
+
+                            var product = products.FirstOrDefault(prod => prod.Name == inputNameOfProduct);
+                            if (product != default)
                             {
-                                Console.WriteLine($"Продукт с именем {product} добавлен в корзину!");
+                                if (ClientController.AddProductInBasket(basket, product))
+                                {
+                                    Console.WriteLine($"Продукт с именем {product} добавлен в корзину!");
+                                }
                             }
+                            else
+                            {
+                                Console.WriteLine("Продукта с таким именем не существует в продаже!");
+                            }
+                            Thread.Sleep(6000);
                         }
-                        else
-                        {
-                            Console.WriteLine("Продукта с таким именем не существует в продаже!");
-                        }
-                        Thread.Sleep(6000);
-
                         break;
 
                     #endregion
@@ -130,25 +134,28 @@ namespace UlyanovProduseStore.VIEW
 
                     case ConsoleKey.Y:
 
-                        const string constYes = "yes";
-                        Console.Clear();
-                        Console.WriteLine($@"Вы уверены, что хотите совершить покупку? Введите ""{constYes}"", если согласны.");
-                        Console.WriteLine("(регистр не учитывается)");
-
-                        if (Console.ReadLine().ToLower() == constYes)
+                        if (productsIsAvailable)
                         {
-                            if (ClientController.Buy(basket, context))
+                            const string constYes = "yes";
+                            Console.Clear();
+                            Console.WriteLine($@"Вы уверены, что хотите совершить покупку? Введите ""{constYes}"", если согласны.");
+                            Console.WriteLine("(регистр не учитывается)");
+
+                            if (Console.ReadLine().ToLower() == constYes)
                             {
-                                Console.WriteLine("Покупка успешно совершена. Ваши данные после покупки:");
-                                Console.WriteLine($"Баланс: {ClientController.GetBalance(сlient)} рублей.");
+                                if (ClientController.Buy(basket, context))
+                                {
+                                    Console.WriteLine("Покупка успешно совершена. Ваши данные после покупки:");
+                                    Console.WriteLine($"Баланс: {ClientController.GetBalance(сlient)} рублей.");
+                                    Thread.Sleep(6000);
+                                }
+                                else
+                                {
+                                    Console.Write("Ваш баланс меньше чем общая стоимость корзины с учётом коэффициента скидки, ");
+                                    Console.Write("ваш аккаунт повреждён или корзина пуста! \n");
+                                }
                                 Thread.Sleep(6000);
                             }
-                            else
-                            {
-                                Console.Write("Ваш баланс меньше чем общая стоимость корзины с учётом коэффициента скидки,");
-                                Console.Write("ваш аккаунт повреждён или корзина пуста! \n");
-                            }
-                            Thread.Sleep(6000);
                         }
                         break;
 
@@ -157,20 +164,22 @@ namespace UlyanovProduseStore.VIEW
                     #region key D (deleting product)
 
                     case ConsoleKey.D:
-
-                        Console.Write("Название удаляемого продукта: ");
-                        string name = Console.ReadLine();
-
-                        if (ClientController.DeleteProductFromBasket(basket, name))
+                        if (productsIsAvailable)
                         {
-                            Console.WriteLine($"Продукт {name} был удалён из корзины.");
-                        }
-                        else
-                        {
-                            Console.WriteLine("Продукт не был удалён!");
-                        }
+                            Console.Write("Название удаляемого продукта: ");
+                            string name = Console.ReadLine();
 
-                        Thread.Sleep(6000);
+                            if (ClientController.DeleteProductFromBasket(basket, name))
+                            {
+                                Console.WriteLine($"Продукт {name} был удалён из корзины.");
+                            }
+                            else
+                            {
+                                Console.WriteLine("Продукт не был удалён!");
+                            }
+
+                            Thread.Sleep(6000);
+                        }
                         break;
                     #endregion
 
